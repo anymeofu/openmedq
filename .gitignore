@@ -5,3 +5,23 @@ context/*
 .env
 .env.*
 .dev.vars
+
+# IDEs and OS
+.DS_Store
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Temporary / Scratch files
+scratch/
+*.log
+npm-debug.log*
+
+# Build and deployment cache
+.expo/
+dist/
+.wrangler/
