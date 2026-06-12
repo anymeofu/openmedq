@@ -3,6 +3,7 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { useAuth } from '@clerk/clerk-react';
 import { db } from '../../lib/db';
 import { subjectsList } from '../../lib/subjects';
+import { getSubjectHierarchy } from '../../lib/hierarchy';
 import { getCurrentMonthStr } from '../../lib/gamification';
 import { ThemeToggle } from '../../components/ThemeToggle';
 import { 
@@ -15,7 +16,9 @@ import {
   TrendingUp,
   Sparkles,
   AlertCircle,
-  RefreshCw
+  RefreshCw,
+  ChevronDown,
+  ChevronUp
 } from 'lucide-react';
 import { type CustomModuleConfig } from '../practice/CustomModuleCreator';
 
@@ -47,6 +50,7 @@ export function Analytics({
   const [subjectSortBy, setSubjectSortBy] = useState<'name' | 'solved' | 'accuracy'>('accuracy');
   const [subjectSortOrder, setSubjectSortOrder] = useState<'asc' | 'desc'>('desc');
   const [selectedForecastDay, setSelectedForecastDay] = useState<string | null>(null);
+  const [expandedSubjectId, setExpandedSubjectId] = useState<number | null>(null);
 
   // Read real data from IndexedDB
   const stats = useLiveQuery(async () => {
@@ -68,6 +72,8 @@ export function Analytics({
       const progressMap = new Map(allProgress.map(p => [p.questionId, p]));
       const subjectSolved: Record<number, number> = {};
       const subjectCorrect: Record<number, number> = {};
+      const topicSolved: Record<number, number> = {};
+      const topicCorrect: Record<number, number> = {};
 
       questions.forEach(q => {
         const p = progressMap.get(q.id);
@@ -75,6 +81,10 @@ export function Analytics({
           subjectSolved[q.subjectId] = (subjectSolved[q.subjectId] || 0) + 1;
           if (p.status === 'CORRECT') {
             subjectCorrect[q.subjectId] = (subjectCorrect[q.subjectId] || 0) + 1;
+          }
+          topicSolved[q.topicId] = (topicSolved[q.topicId] || 0) + 1;
+          if (p.status === 'CORRECT') {
+            topicCorrect[q.topicId] = (topicCorrect[q.topicId] || 0) + 1;
           }
         }
       });
@@ -268,9 +278,9 @@ export function Analytics({
         relearning: relearningCount
       };
 
-      const subjectProgressMock: Record<number, { solved: number; correct: number }> = {};
+      const subjectProgress: Record<number, { solved: number; correct: number }> = {};
       subjectsList.forEach(s => {
-        subjectProgressMock[s.id] = {
+        subjectProgress[s.id] = {
           solved: subjectSolved[s.id] || 0,
           correct: subjectCorrect[s.id] || 0
         };
@@ -349,13 +359,15 @@ export function Analytics({
         difficultyDistribution,
         stabilityDistribution,
         stateDistribution,
-        subjectProgressMock,
+        subjectProgress,
         estimatedKnowledgeCount,
         averageRetentionRate,
         leeches,
         dueDetailsMap,
         heatmapDays,
-        dayOfWeekOfStart
+        dayOfWeekOfStart,
+        topicSolved,
+        topicCorrect
       };
     } catch (err) {
       console.warn("Query error for stats.");
@@ -450,7 +462,7 @@ export function Analytics({
       if (sub) {
         totalQuestionsInPhase += sub.count;
       }
-      const prog = stats.subjectProgressMock[subId];
+      const prog = stats.subjectProgress[subId];
       if (prog) {
         solvedInPhase += prog.solved;
         correctInPhase += prog.correct;
@@ -478,7 +490,7 @@ export function Analytics({
   // Sortable subjects data
   const sortedSubjects = (() => {
     const subjects = subjectsList.map(subject => {
-      const prog = stats.subjectProgressMock[subject.id] || { solved: 0, correct: 0 };
+      const prog = stats.subjectProgress[subject.id] || { solved: 0, correct: 0 };
       const completionPct = Math.min(100, Math.round((prog.solved / subject.count) * 1000) / 10);
       const accuracyPct = prog.solved > 0 ? Math.round((prog.correct / prog.solved) * 100) : 100;
       
@@ -627,10 +639,10 @@ export function Analytics({
 
   const cardStates = (() => {
     const states = [
-      { name: 'Review (Scheduled)', count: stats.stateDistribution.review, color: 'bg-clay-teal text-white' },
-      { name: 'Learning (Active)', count: stats.stateDistribution.learning, color: 'bg-clay-lavender text-clay-ink border border-clay-hairline' },
-      { name: 'Relearning (Lapsed)', count: stats.stateDistribution.relearning, color: 'bg-clay-pink text-white' },
-      { name: 'New (Unattempted)', count: stats.stateDistribution.newCards, color: 'bg-clay-surface-card text-clay-muted border border-clay-hairline' },
+      { name: 'Revision Ready', count: stats.stateDistribution.review, color: 'bg-clay-teal text-white' },
+      { name: 'Active Learning', count: stats.stateDistribution.learning, color: 'bg-clay-lavender text-clay-ink border border-clay-hairline' },
+      { name: 'Memory Slips', count: stats.stateDistribution.relearning, color: 'bg-clay-pink text-white' },
+      { name: 'Unstudied Concepts', count: stats.stateDistribution.newCards, color: 'bg-clay-surface-card text-clay-muted border border-clay-hairline' },
     ];
     
     return states.map(s => {
@@ -880,6 +892,7 @@ export function Analytics({
                         height={barYBase - pt.yCorrect}
                         fill="var(--clay-teal)"
                         rx={2}
+                        className="animate-grow-y"
                       />
                     )}
 
@@ -895,6 +908,7 @@ export function Analytics({
                         stroke="var(--clay-pink)"
                         strokeWidth={1}
                         rx={2}
+                        className="animate-grow-y"
                       />
                     )}
 
@@ -919,6 +933,7 @@ export function Analytics({
                 strokeWidth={2.5}
                 strokeLinecap="round"
                 strokeLinejoin="round"
+                className="animate-draw"
               />
 
               {/* Data dots on accuracy line */}
@@ -1070,10 +1085,10 @@ export function Analytics({
             <div>
               <h3 className="font-rubik text-lg font-medium tracking-[-0.03em] text-clay-ink flex items-center gap-2">
                 <BrainCircuit className="w-5 h-5 text-clay-lavender fill-current text-opacity-40" />
-                <span>Revision Scheduler Analytics</span>
+                <span>Smart Revision Insights</span>
               </h3>
               <p className="text-clay-muted text-xs mt-0.5">
-                Understand how the algorithm schedules questions based on your estimated memory retention.
+                See how the learning system calculates your memory shelf life to optimize review intervals.
               </p>
             </div>
 
@@ -1112,7 +1127,7 @@ export function Analytics({
               
               {/* Difficulty Spectrum */}
               <div className="flex flex-col gap-2 text-left">
-                <span className="text-[10px] font-bold text-clay-muted uppercase tracking-wider">Difficulty distribution (1-10)</span>
+                <span className="text-[10px] font-bold text-clay-muted uppercase tracking-wider">Concept Complexity Profile (1-10)</span>
                 <div className="bg-clay-surface-soft/50 border border-clay-hairline rounded-clay-lg p-2 flex items-center justify-center">
                   <svg 
                     viewBox={`0 0 ${diffChartDimensions.width} ${diffChartDimensions.height}`}
@@ -1147,7 +1162,7 @@ export function Analytics({
                             width={pt.barWidth}
                             height={pt.barHeight}
                             fill="var(--clay-peach)"
-                            className="hover:fill-clay-pink transition-colors duration-150"
+                            className="hover:fill-clay-pink transition-colors duration-150 animate-grow-y"
                             rx={1.5}
                           />
                           {/* X labels */}
@@ -1157,21 +1172,21 @@ export function Analytics({
                             className="text-[8px] fill-clay-muted font-bold"
                             textAnchor="middle"
                           >
-                            D{pt.difficulty}
+                            C{pt.difficulty}
                           </text>
                           {/* Value tooltip on hover */}
-                          <title>Difficulty {pt.difficulty}: {pt.count} cards</title>
+                          <title>Complexity Level {pt.difficulty}: {pt.count} cards</title>
                         </g>
                       );
                     })}
                   </svg>
                 </div>
-                <span className="text-[9px] text-clay-muted">Peaks represent content difficulty density.</span>
+                <span className="text-[9px] text-clay-muted">Higher peaks represent more concepts at that complexity level.</span>
               </div>
 
               {/* Memory Stability Spectrum */}
               <div className="flex flex-col gap-2 text-left">
-                <span className="text-[10px] font-bold text-clay-muted uppercase tracking-wider">Estimated Retention stability</span>
+                <span className="text-[10px] font-bold text-clay-muted uppercase tracking-wider">Estimated Memory Shelf Life</span>
                 
                 <div className="space-y-1.5 flex-1 flex flex-col justify-center">
                   {stats.stabilityDistribution.map((range, idx) => {
@@ -1201,15 +1216,15 @@ export function Analytics({
                     );
                   })}
                 </div>
-                <span className="text-[9px] text-clay-muted">Stability is the expected memory lifetime in days.</span>
+                <span className="text-[9px] text-clay-muted">Shelf life is the estimated time before revision is recommended to prevent forgetting.</span>
               </div>
             </div>
 
             {/* Upcoming Spaced Repetition Due Load (7-Day Forecast) */}
             <div className="border-t border-clay-hairline pt-5 flex flex-col gap-3">
               <div className="flex justify-between items-center">
-                <span className="text-[10px] font-bold text-clay-muted uppercase tracking-wider">7-Day Review Forecast</span>
-                <span className="text-[10px] font-bold text-clay-pink">Next 7 days due load</span>
+                <span className="text-[10px] font-bold text-clay-muted uppercase tracking-wider">7-Day Revision Forecast</span>
+                <span className="text-[10px] font-bold text-clay-pink">Scheduled revisions for the next week</span>
               </div>
 
               <div className="bg-clay-surface-soft/50 border border-clay-hairline rounded-clay-lg p-2.5">
@@ -1251,7 +1266,7 @@ export function Analytics({
                           onClick={() => {
                             setSelectedForecastDay(prev => prev === pt.dateKey ? null : (pt.dateKey || null));
                           }}
-                          className="hover:fill-clay-pink transition-colors duration-150 cursor-pointer"
+                          className="hover:fill-clay-pink transition-colors duration-150 cursor-pointer animate-grow-y"
                         />
                         {/* Values atop bars */}
                         {pt.dueCount > 0 && (
@@ -1266,7 +1281,7 @@ export function Analytics({
                         )}
                         {/* X labels */}
                         <text 
-                          x={pt.x}
+                          x={pt.x} 
                           y={forecastChartDimensions.height - 18}
                           className={`text-[8px] font-bold ${isSelected ? 'fill-clay-pink font-extrabold' : 'fill-clay-muted'}`}
                           textAnchor="middle"
@@ -1284,7 +1299,7 @@ export function Analytics({
                 <div className="bg-clay-canvas border border-clay-hairline rounded-clay-lg p-4 text-xs text-left animate-[fadeIn_0.2s_ease-out] mt-3">
                   <div className="flex justify-between items-center border-b border-clay-hairline pb-2 mb-2">
                     <span className="font-bold text-clay-ink">
-                      Due on {new Date(selectedForecastDay).toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' })}:
+                      Ready to review on {new Date(selectedForecastDay).toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' })}:
                     </span>
                     <button 
                       onClick={() => setSelectedForecastDay(null)}
@@ -1300,7 +1315,7 @@ export function Analytics({
                         {stats.dueDetailsMap[selectedForecastDay].map((item, idx) => (
                           <div key={idx} className="bg-clay-surface-soft border border-clay-hairline rounded-clay-md px-2.5 py-1.5 flex items-center gap-1.5">
                             <span className="font-bold text-clay-ink">{item.subjectName}</span>
-                            <span className="text-[10px] bg-clay-pink/15 text-clay-pink px-1.5 py-0.5 rounded font-extrabold">{item.count} due</span>
+                            <span className="text-[10px] bg-clay-pink/15 text-clay-pink px-1.5 py-0.5 rounded font-extrabold">{item.count} to review</span>
                           </div>
                         ))}
                       </div>
@@ -1320,12 +1335,12 @@ export function Analytics({
                           className="bg-clay-ink hover:bg-neutral-800 text-white font-bold px-3 py-1.5 rounded-clay-md text-[10px] shadow-sm transition-all duration-200 cursor-pointer flex items-center gap-1"
                         >
                           <Zap className="w-3 h-3 fill-current text-clay-ochre" />
-                          <span>Revise Day's Due Qs</span>
+                          <span>Revise Scheduled Concepts</span>
                         </button>
                       </div>
                     </div>
                   ) : (
-                    <p className="text-clay-muted text-[10px]">No spaced repetition reviews scheduled for this calendar date.</p>
+                    <p className="text-clay-muted text-[10px]">No revision reviews scheduled for this date.</p>
                   )}
                 </div>
               )}
@@ -1421,17 +1436,17 @@ export function Analytics({
           </div>
         </div>
 
-        {/* Leeches & Difficult Concepts Warning Section */}
+        {/* Tough Concepts & Weak Spots Section */}
         {stats.leeches && stats.leeches.length > 0 && (
-          <div className="bg-clay-canvas border border-clay-pink rounded-clay-xl p-6 md:p-8 flex flex-col gap-6 shadow-sm">
+          <div className="bg-clay-canvas border border-clay-pink rounded-clay-xl p-6 md:p-8 flex flex-col gap-6 shadow-sm animate-fade-in-up">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
               <div>
                 <h3 className="font-rubik text-lg md:text-xl font-medium tracking-[-0.03em] text-clay-ink flex items-center gap-2">
                   <AlertCircle className="w-5 h-5 text-clay-pink" />
-                  <span>Leeches & Difficult Concepts Warning</span>
+                  <span>Troublesome Concepts & Weak Spots</span>
                 </h3>
                 <p className="text-clay-muted text-xs mt-0.5">
-                  These are questions you have failed repeatedly (lapses &ge; 3) or have high difficulty. Revise them to prevent memory decay.
+                  These are questions you have failed repeatedly (forgotten &ge; 3 times) or have high complexity. Revise them to lock in the memory.
                 </p>
               </div>
 
@@ -1448,16 +1463,16 @@ export function Analytics({
                 className="px-4 py-2 bg-clay-pink hover:bg-rose-600 text-white text-xs font-bold rounded-clay-md transition-all duration-200 cursor-pointer shadow-sm flex items-center gap-1.5"
               >
                 <Zap className="w-3.5 h-3.5 fill-current text-clay-ochre" />
-                <span>Practice {Math.min(20, stats.leeches.length)} Leeches</span>
+                <span>Practice {Math.min(20, stats.leeches.length)} Weak Spots</span>
               </button>
             </div>
 
-            {/* List of leeches */}
+            {/* List of weak spots */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {stats.leeches.slice(0, 4).map((leech) => (
                 <div 
                   key={leech.questionId}
-                  className="bg-clay-surface-soft/60 border border-clay-hairline rounded-clay-lg p-4 flex flex-col justify-between hover:border-clay-pink/50 transition-all duration-200"
+                  className="bg-clay-surface-soft/60 border border-clay-hairline rounded-clay-lg p-4 flex flex-col justify-between hover:border-clay-pink/50 transition-all duration-200 hover-clay-card"
                 >
                   <div>
                     <div className="flex justify-between items-center mb-2">
@@ -1465,9 +1480,9 @@ export function Analytics({
                         {leech.subjectName}
                       </span>
                       <div className="flex items-center gap-2 text-[10px] font-bold text-rose-600">
-                        <span>Lapses: {leech.lapses}</span>
+                        <span>Forgotten: {leech.lapses}x</span>
                         <span className="text-clay-muted">•</span>
-                        <span>Diff: {leech.difficulty.toFixed(1)}</span>
+                        <span>Complexity: {leech.difficulty.toFixed(1)}</span>
                       </div>
                     </div>
                     
@@ -1490,7 +1505,7 @@ export function Analytics({
                       }}
                       className="text-[10px] font-bold text-clay-pink hover:underline flex items-center gap-1 cursor-pointer"
                     >
-                      <span>Practice Subject Leeches &rarr;</span>
+                      <span>Practice Subject Weak Spots &rarr;</span>
                     </button>
                   </div>
                 </div>
@@ -1551,81 +1566,126 @@ export function Analytics({
 
           {/* Subjects Table / Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {sortedSubjects.map(subject => {
+            {sortedSubjects.map((subject, subIdx) => {
               const wrongCount = subject.solved - subject.correct;
               const hasSolved = subject.solved > 0;
+              const isExpanded = expandedSubjectId === subject.id;
 
               return (
                 <div 
                   key={subject.id}
-                  className="bg-clay-canvas border border-clay-hairline rounded-clay-lg p-4 flex flex-col justify-between hover:border-clay-muted transition-all duration-200"
+                  className="bg-clay-canvas border border-clay-hairline rounded-clay-lg p-4 flex flex-col justify-between hover-clay-card transition-all duration-200 animate-fade-in-up"
+                  style={{ animationDelay: `${subIdx * 30}ms` }}
                 >
-                  <div className="flex justify-between items-start gap-2 mb-2">
-                    <div>
-                      <span className="text-[9px] font-bold uppercase tracking-wider text-clay-muted block">
-                        {subject.phaseName}
-                      </span>
-                      <h4 className="font-bold text-sm text-clay-ink leading-tight">
-                        {subject.name}
-                      </h4>
-                    </div>
-
-                    <div className="text-right shrink-0">
-                      <span className="text-[10px] font-bold text-clay-muted bg-clay-surface-soft border border-clay-hairline px-2 py-0.5 rounded">
-                        {subject.count} Qs
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Sparkline & Details */}
-                  <div className="flex gap-4 items-center my-3">
-                    {/* Miniature SVG Donut/Pie Sparkline */}
-                    <svg viewBox="0 0 36 36" className="w-10 h-10 shrink-0">
-                      {/* Background grey circle */}
-                      <circle cx="18" cy="18" r="15.915" fill="none" stroke="var(--clay-hairline)" strokeWidth="4" />
-                      
-                      {/* Solved correct segment - teal */}
-                      {hasSolved && (
-                        <circle 
-                          cx="18" cy="18" r="15.915" fill="none" 
-                          stroke="var(--clay-teal)" 
-                          strokeWidth="4" 
-                          strokeDasharray={`${(subject.correct / subject.count) * 100} ${100 - (subject.correct / subject.count) * 100}`}
-                          strokeDashoffset="25"
-                        />
-                      )}
-                      
-                      {/* Solved incorrect segment - pink */}
-                      {hasSolved && wrongCount > 0 && (
-                        <circle 
-                          cx="18" cy="18" r="15.915" fill="none" 
-                          stroke="var(--clay-pink)" 
-                          strokeWidth="4" 
-                          strokeDasharray={`${(wrongCount / subject.count) * 100} ${100 - (wrongCount / subject.count) * 100}`}
-                          strokeDashoffset={`${25 - (subject.correct / subject.count) * 100}`}
-                        />
-                      )}
-                    </svg>
-
-                    <div className="flex-1 space-y-1 text-xs text-clay-body">
-                      <div className="flex justify-between">
-                        <span>Solved:</span>
-                        <span className="font-bold text-clay-ink">
-                          {subject.solved} <span className="text-[10px] font-normal text-clay-muted">({Math.round(subject.completionPct)}%)</span>
+                  <div 
+                    onClick={() => setExpandedSubjectId(prev => prev === subject.id ? null : subject.id)}
+                    className="cursor-pointer select-none"
+                  >
+                    <div className="flex justify-between items-start gap-2 mb-2">
+                      <div>
+                        <span className="text-[9px] font-bold uppercase tracking-wider text-clay-muted block">
+                          {subject.phaseName}
                         </span>
+                        <h4 className="font-bold text-sm text-clay-ink leading-tight flex items-center gap-1.5">
+                          <span>{subject.name}</span>
+                          {isExpanded ? <ChevronUp className="w-3.5 h-3.5 text-clay-pink" /> : <ChevronDown className="w-3.5 h-3.5 text-clay-muted" />}
+                        </h4>
                       </div>
-                      
-                      <div className="flex justify-between">
-                        <span>Accuracy:</span>
-                        <span className={`font-bold ${hasSolved ? 'text-clay-pink' : 'text-clay-muted'}`}>
-                          {hasSolved ? `${subject.accuracyPct}%` : 'Unsolved'}
+
+                      <div className="text-right shrink-0">
+                        <span className="text-[10px] font-bold text-clay-muted bg-clay-surface-soft border border-clay-hairline px-2 py-0.5 rounded">
+                          {subject.count} Qs
                         </span>
                       </div>
                     </div>
+
+                    {/* Sparkline & Details */}
+                    <div className="flex gap-4 items-center my-3">
+                      {/* Miniature SVG Donut/Pie Sparkline */}
+                      <svg viewBox="0 0 36 36" className="w-10 h-10 shrink-0">
+                        {/* Background grey circle */}
+                        <circle cx="18" cy="18" r="15.915" fill="none" stroke="var(--clay-hairline)" strokeWidth="4" />
+                        
+                        {/* Solved correct segment - teal */}
+                        {hasSolved && (
+                          <circle 
+                            cx="18" cy="18" r="15.915" fill="none" 
+                            stroke="var(--clay-teal)" 
+                            strokeWidth="4" 
+                            strokeDasharray={`${(subject.correct / subject.count) * 100} ${100 - (subject.correct / subject.count) * 100}`}
+                            strokeDashoffset="25"
+                          />
+                        )}
+                        
+                        {/* Solved incorrect segment - pink */}
+                        {hasSolved && wrongCount > 0 && (
+                          <circle 
+                            cx="18" cy="18" r="15.915" fill="none" 
+                            stroke="var(--clay-pink)" 
+                            strokeWidth="4" 
+                            strokeDasharray={`${(wrongCount / subject.count) * 100} ${100 - (wrongCount / subject.count) * 100}`}
+                            strokeDashoffset={`${25 - (subject.correct / subject.count) * 100}`}
+                          />
+                        )}
+                      </svg>
+
+                      <div className="flex-1 space-y-1 text-xs text-clay-body">
+                        <div className="flex justify-between">
+                          <span>Solved:</span>
+                          <span className="font-bold text-clay-ink">
+                            {subject.solved} <span className="text-[10px] font-normal text-clay-muted">({Math.round(subject.completionPct)}%)</span>
+                          </span>
+                        </div>
+                        
+                        <div className="flex justify-between">
+                          <span>Accuracy:</span>
+                          <span className={`font-bold ${hasSolved ? 'text-clay-pink' : 'text-clay-muted'}`}>
+                            {hasSolved ? `${subject.accuracyPct}%` : 'Unsolved'}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
                   </div>
+
+                  {/* Expandable Topic-wise Breakdown */}
+                  {isExpanded && (() => {
+                    const hierarchy = getSubjectHierarchy(subject.id);
+                    return (
+                      <div className="mt-3 border-t border-clay-hairline pt-3 space-y-2 animate-fade-in text-left">
+                        <span className="text-[9px] font-bold text-clay-muted uppercase tracking-wider block">Topic Breakdown</span>
+                        <div className="max-h-40 overflow-y-auto space-y-1.5 pr-1 scrollbar-none">
+                          {hierarchy.topics.map(topic => {
+                            const subIds = topic.subTopics.map(sub => sub.id);
+                            const topicSolvedCount = subIds.reduce((sum, id) => sum + (stats.topicSolved[id] || 0), 0);
+                            const topicCorrectCount = subIds.reduce((sum, id) => sum + (stats.topicCorrect[id] || 0), 0);
+                            const topicAccuracy = topicSolvedCount > 0 ? Math.round((topicCorrectCount / topicSolvedCount) * 100) : 100;
+                            const topicCompletion = Math.min(100, Math.round((topicSolvedCount / topic.count) * 100));
+
+                            return (
+                              <div key={topic.name} className="p-2 rounded bg-clay-surface-soft border border-clay-hairline text-[11px] space-y-1">
+                                <div className="flex justify-between items-center font-bold text-clay-ink">
+                                  <span className="truncate max-w-[170px]" title={topic.name}>{topic.name}</span>
+                                  <span className="shrink-0 text-[10px] text-clay-muted font-normal">{topicSolvedCount}/{topic.count} Qs</span>
+                                </div>
+                                <div className="flex items-center justify-between text-[9px] text-clay-muted">
+                                  <div className="flex-1 bg-clay-canvas h-1 rounded-full overflow-hidden mr-2 max-w-[100px] border border-clay-hairline">
+                                    <div className="bg-clay-teal h-full" style={{ width: `${topicCompletion}%` }} />
+                                  </div>
+                                  <span>{topicCompletion}% done</span>
+                                  <span className={`ml-2 font-semibold ${topicSolvedCount > 0 ? 'text-clay-pink' : 'text-clay-muted'}`}>
+                                    {topicSolvedCount > 0 ? `${topicAccuracy}% Acc` : 'Unsolved'}
+                                  </span>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    );
+                  })()}
 
                   {/* Quick strengthen options */}
-                  <div className="grid grid-cols-2 gap-2 mt-2 pt-2 border-t border-clay-hairline">
+                  <div className="grid grid-cols-2 gap-2 mt-3 pt-2 border-t border-clay-hairline">
                     <button
                       onClick={() => onPracticeSubject(subject.id)}
                       className="bg-clay-surface-soft hover:bg-clay-surface-strong text-clay-ink text-[10px] font-bold py-1.5 rounded-clay-md cursor-pointer transition-colors text-center"

@@ -2,3 +2,6 @@ node_modules
 context/*
 !context/updates/
 .agents/
+.env
+.env.*
+.dev.vars

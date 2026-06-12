@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   ArrowRight,
   Sparkles,
@@ -18,10 +18,13 @@ import {
   Layers,
   Menu,
   X,
+  Search,
+  AlertCircle
 } from 'lucide-react';
 import { SignedIn, SignedOut, UserButton } from '@clerk/clerk-react';
-import { ContributorMarquee } from '../../components/ui/contributor-marquee';
 import { ThemeToggle } from '../../components/ThemeToggle';
+import { MarkdownRenderer } from '../../components/MarkdownRenderer';
+import { totalDBQuestionCount } from '../../lib/subjects';
 
 interface MCQOption {
   key: 'A' | 'B' | 'C' | 'D';
@@ -29,14 +32,69 @@ interface MCQOption {
   isCorrect: boolean;
 }
 
+const mcqQuestionText = `A 38-week pregnant woman with poorly controlled **gestational diabetes** delivers a healthy neonate. Which of the following morphological responses would most likely be observed in the pancreatic islets of the neonate due to maternal hyperglycemia?`;
+
 const mcqOptions: MCQOption[] = [
-  { key: 'A', text: 'Atrophy', isCorrect: false },
-  { key: 'B', text: 'Dysplasia', isCorrect: false },
-  { key: 'C', text: 'Hyperplasia', isCorrect: true },
-  { key: 'D', text: 'Metaplasia', isCorrect: false },
+  { key: 'A', text: '*Atrophy*', isCorrect: false },
+  { key: 'B', text: '*Dysplasia*', isCorrect: false },
+  { key: 'C', text: '*Hyperplasia*', isCorrect: true },
+  { key: 'D', text: '*Metaplasia*', isCorrect: false },
 ];
 
-export function LandingPage({ onStartPractice, onSignIn }: { onStartPractice: () => void; onSignIn: () => void }) {
+const mcqExplanationText = `Maternal hyperglycemia transfers excess glucose to the fetus. The fetal pancreas responds by producing insulin, causing **physiologic hyperplasia** of the islets (beta-cells). Post-delivery, the hyperinsulinemia persists briefly, causing potential neonatal hypoglycemia.`;
+
+const mbbsSubjects = [
+  'Anatomy', 'Physiology', 'Biochemistry', 'Pathology', 'Pharmacology', 
+  'Microbiology', 'Forensic Medicine', 'Social & Preventive Medicine', 
+  'Ophthalmology', 'Otorhinolaryngology', 'General Medicine', 'General Surgery', 
+  'Obstetrics & Gynecology', 'Pediatrics', 'Orthopedics', 'Dermatology', 
+  'Psychiatry', 'Radiology', 'Anesthesiology'
+];
+
+const subjectEmojis: Record<string, string> = {
+  'Anatomy': '💀',
+  'Physiology': '🫁',
+  'Biochemistry': '🧬',
+  'Pathology': '🔬',
+  'Pharmacology': '💊',
+  'Microbiology': '🧫',
+  'Forensic Medicine': '🔍',
+  'Social & Preventive Medicine': '🏥',
+  'Ophthalmology': '👁️',
+  'Otorhinolaryngology': '👂',
+  'General Medicine': '🩺',
+  'General Surgery': '🩹',
+  'Obstetrics & Gynecology': '🤰',
+  'Pediatrics': '👶',
+  'Orthopedics': '🦴',
+  'Dermatology': '🧴',
+  'Psychiatry': '🧠',
+  'Radiology': '🩻',
+  'Anesthesiology': '💉'
+};
+
+export function LandingPage({ 
+  onStartPractice, 
+  onSignIn,
+  onViewPrivacy,
+  onViewTerms,
+  onViewDisclaimer,
+  onViewDMCA,
+  onViewContribute,
+  onViewRoadmap,
+  isDark = false
+}: { 
+  onStartPractice: () => void; 
+  onSignIn: () => void;
+  onViewPrivacy: () => void;
+  onViewTerms: () => void;
+  onViewDisclaimer: () => void;
+  onViewDMCA: () => void;
+  onViewContribute: () => void;
+  onViewRoadmap: () => void;
+  isDark?: boolean;
+}) {
+  const logoSrc = isDark ? '/logo-dark.png' : '/logo-light.png';
   // MCQ Preview State
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
   const [isBookmarked, setIsBookmarked] = useState(false);
@@ -45,9 +103,9 @@ export function LandingPage({ onStartPractice, onSignIn }: { onStartPractice: ()
   // Active Recall Dashboard State
   const [activeRecallTab, setActiveRecallTab] = useState<'daily' | 'mastery'>('daily');
   const [simulatedTasks, setSimulatedTasks] = useState([
-    { id: 1, text: 'Complete 5 Daily Pathology Questions', done: true, points: '+50 XP' },
-    { id: 2, text: 'Review 3 Pharmacology errors', done: false, points: '+30 XP' },
-    { id: 3, text: 'Solve 1 Physiology bookmarked question', done: false, points: '+15 XP' },
+    { id: 1, text: 'Complete 5 Pathology Revision Reviews', done: true, points: '+50 Points' },
+    { id: 2, text: 'Target 3 Pharmacology Weak Spots', done: false, points: '+30 Points' },
+    { id: 3, text: 'Review 1 Physiology bookmarked question', done: false, points: '+15 Points' },
   ]);
 
   // FAQ Accordion State
@@ -56,12 +114,95 @@ export function LandingPage({ onStartPractice, onSignIn }: { onStartPractice: ()
   // Mobile Menu State
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
+  // Interactive Feature Drilldown Demo State
+  const [demoExpanded, setDemoExpanded] = useState(false);
+
+  // FSRS Interactive Simulator State
+  const [fsrsStability, setFsrsStability] = useState(3.2);
+  const [fsrsDifficulty, setFsrsDifficulty] = useState(5.1);
+  const [fsrsInterval, setFsrsInterval] = useState('3 days');
+  const [lastFsrsAction, setLastFsrsAction] = useState<string | null>(null);
+
+  const handleFsrsSimulate = (rating: 'again' | 'hard' | 'good' | 'easy') => {
+    setLastFsrsAction(rating);
+    if (rating === 'again') {
+      setFsrsStability(1.0);
+      setFsrsDifficulty(8.0);
+      setFsrsInterval('1 day');
+    } else if (rating === 'hard') {
+      setFsrsStability(2.2);
+      setFsrsDifficulty(6.5);
+      setFsrsInterval('2 days');
+    } else if (rating === 'good') {
+      setFsrsStability(8.4);
+      setFsrsDifficulty(5.1);
+      setFsrsInterval('8 days');
+    } else if (rating === 'easy') {
+      setFsrsStability(18.5);
+      setFsrsDifficulty(3.8);
+      setFsrsInterval('18 days');
+    }
+  };
+
+  // Animated Questions Count triggered on scroll
+  const [questionCount, setQuestionCount] = useState(175000);
+  const counterRef = useRef<HTMLDivElement | null>(null);
+  const [hasAnimated, setHasAnimated] = useState(false);
+  const rafIdRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    if (hasAnimated) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const [entry] = entries;
+        if (entry.isIntersecting) {
+          setHasAnimated(true);
+          
+          let start = 175000;
+          const end = totalDBQuestionCount;
+          const duration = 2000;
+          
+          const startTime = performance.now();
+
+          const updateCount = (now: number) => {
+            const progress = Math.min((now - startTime) / duration, 1);
+            const easeProgress = progress * (2 - progress);
+            const current = Math.floor(easeProgress * (end - start) + start);
+            setQuestionCount(current);
+            
+            if (progress < 1) {
+              rafIdRef.current = requestAnimationFrame(updateCount);
+            } else {
+              rafIdRef.current = null;
+            }
+          };
+
+          rafIdRef.current = requestAnimationFrame(updateCount);
+          observer.disconnect();
+        }
+      },
+      { threshold: 0.1 }
+    );
+
+    if (counterRef.current) {
+      observer.observe(counterRef.current);
+    }
+
+    return () => {
+      observer.disconnect();
+      if (rafIdRef.current !== null) {
+        cancelAnimationFrame(rafIdRef.current);
+      }
+    };
+  }, [hasAnimated]);
+
   const toggleFaq = (index: number) => {
     setOpenFaq(openFaq === index ? null : index);
   };
 
   const handleOptionClick = (key: string) => {
-    if (selectedOption) return; // Allow answering only once in the sandbox
+    if (selectedOption) return;
     setSelectedOption(key);
     if (key === 'C') {
       setStreakSimulated(prev => prev + 1);
@@ -81,24 +222,32 @@ export function LandingPage({ onStartPractice, onSignIn }: { onStartPractice: ()
   const faqs = [
     {
       q: 'How is OpenMedQ 100% free? Is there a catch?',
-      a: 'There is zero catch. OpenMedQ is built using highly optimized serverless web infrastructure. By storing question packs on public servers and storing your progress securely on your device, we keep operational costs at literally ₹0. It is run as an open-source project by volunteer doctors and developers who believe medical education should not be locked behind a paywall.',
+      a: 'There is no catch. OpenMedQ is a solo project built by a 3rd year medical student who got tired of platforms pay-walling standard clinical questions. Because it is programmed to run local-first in your browser, there are no expensive database servers to host, keeping operating costs at practically ₹0. It remains open and free for all medical students.',
     },
     {
-      q: 'Are the questions reliable and high-yield for NEET PG / FMGE / INI-CET?',
-      a: 'Yes. All questions are crowdsourced from standard public medical repositories, peer-reviewed by top-ranking residents, and formatted strictly according to the recent clinical exam patterns. We do not use low-yield filler questions.',
+      q: 'Are the questions aligned with the recent clinical patterns for NEET PG, FMGE, and INI-CET?',
+      a: 'Yes. All questions are compiled from the open MedMCQA clinical research dataset (originally published on Hugging Face by OpenLifeScienceAI), consisting of over 186,000 verified medical prep questions. They are mapped to the 19 standard MBBS subjects, peer-vetted to exclude outdated guidelines, and formatted to mirror clinical, case-based questions.',
     },
     {
-      q: 'Can I practice offline inside hospital wards?',
-      a: 'Absolutely. OpenMedQ is built as a Local-First application. When you load a question pack, it stores all questions in your browser\'s local device storage. You can practice in the clinical wards, elevators, or hostel basements with zero internet connection. Your progress automatically syncs when you go back online.',
+      q: 'Can I study offline in clinical wards or hostels?',
+      a: 'Yes. OpenMedQ is designed to be Local-First. When you load a subject pack, it caches locally. You can solve questions, view detailed explanations, and track your revision shelf life in clinical wards, lifts, or basements with zero cellular signal.',
     },
     {
-      q: 'Why should I sign up if guest mode is available?',
-      a: 'Guest Mode allows you to start practicing instantly with zero setup. Signing up with Clerk is completely free and allows us to back up your progress, sync your active recall schedule across multiple devices (e.g., phone and laptop), and maintain your daily practice streak.',
+      q: 'Why should I sign up if Guest Mode is available?',
+      a: 'Guest Mode lets you practice instantly with zero setup. Creating a free account via Clerk securely syncs your revision history, bookmarks, and streaks across your laptop and phone, ensuring you never lose your progress.',
     },
     {
-      q: 'How can I contribute to the questions or codebase?',
-      a: 'We are fully open-source! You can submit question corrections, add explanation links, or write code by visiting our GitHub repository. We welcome doctors, medical students, and developers alike.',
+      q: 'How does the FSRS (Free Spaced Repetition Scheduler) algorithm differ from traditional Anki or SM-2?',
+      a: 'FSRS v6 is a modern spaced repetition scheduler based on advanced optimization curves. While older engines (like SM-2) rely on simple multipliers that lead to review pile-ups, FSRS dynamically calculates the Retrievability, Stability, and Difficulty of each concept based on your responses. It adjusts scheduling parameters so you study less while achieving superior long-term retention.',
     },
+    {
+      q: 'Is my study progress safe on OpenMedQ, and is it secure?',
+      a: 'Absolutely. Your data is stored locally in your browser\'s IndexedDB database, meaning you own your logs. When syncing with Clerk, your progress is compressed into a lightweight format, guaranteeing your records are saved safely without bloating transmission.',
+    },
+    {
+      q: 'How can I submit corrections or contribute to the question bank?',
+      a: 'OpenMedQ is a peer-supported open-source platform. If you find a typo, an outdated clinical guideline, or a wrong reference explanation, you can click the GitHub link in the footer to submit corrections or open a pull request directly.',
+    }
   ];
 
   return (
@@ -107,7 +256,7 @@ export function LandingPage({ onStartPractice, onSignIn }: { onStartPractice: ()
       {/* HEADER */}
       <header className="sticky top-0 z-50 w-full bg-clay-canvas border-b border-clay-hairline py-4 px-6 md:px-12 flex items-center justify-between">
         <div className="flex items-center gap-3 group cursor-pointer" onClick={() => { setIsMobileMenuOpen(false); window.scrollTo({ top: 0, behavior: 'smooth' }); }}>
-          <img src="/logo.png" className="w-10 h-10 rounded-clay-md shadow-sm group-hover:scale-105 transition-transform duration-300 object-cover" alt="OpenMedQ Logo" />
+          <img src={logoSrc} className="w-10 h-10 rounded-clay-md shadow-sm group-hover:scale-105 transition-transform duration-300 object-contain" alt="OpenMedQ Logo" />
           <span className="text-xl font-bold tracking-tight text-clay-ink group-hover:text-clay-pink transition-colors duration-300">
             OpenMedQ
           </span>
@@ -115,26 +264,17 @@ export function LandingPage({ onStartPractice, onSignIn }: { onStartPractice: ()
 
         <nav className="hidden md:flex items-center gap-8 text-sm font-semibold text-clay-muted">
           <a href="#sandbox" className="hover:text-clay-ink transition-colors duration-200">Interactive MCQ</a>
-          <a href="#bento-stats" className="hover:text-clay-ink transition-colors duration-200">Database Bento</a>
-          <a href="#comparison" className="hover:text-clay-ink transition-colors duration-200">Pain Points</a>
-          <a href="#active-recall" className="hover:text-clay-ink transition-colors duration-200">Habit Loops</a>
+          <a href="#manifesto" className="hover:text-clay-ink transition-colors duration-200">Manifesto</a>
+          <a href="#features" className="hover:text-clay-ink transition-colors duration-200">Features</a>
+          <a href="#developer-story" className="hover:text-clay-ink transition-colors duration-200">Developer Story</a>
           <a href="#faq" className="hover:text-clay-ink transition-colors duration-200">FAQ</a>
+          <button onClick={onViewRoadmap} className="hover:text-clay-ink transition-colors duration-200 bg-transparent border-0 p-0 font-semibold text-sm cursor-pointer">Roadmap</button>
+          <button onClick={onViewContribute} className="hover:text-clay-ink transition-colors duration-200 bg-transparent border-0 p-0 font-semibold text-sm cursor-pointer">Contribute</button>
         </nav>
 
         {/* Desktop actions */}
         <div className="hidden md:flex items-center gap-4">
           <ThemeToggle />
-          <a
-            href="https://github.com"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center gap-1.5 text-xs font-semibold text-clay-muted hover:text-clay-ink bg-clay-surface-soft border border-clay-hairline px-3 py-1.5 rounded-full transition-all duration-300"
-          >
-            <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24" aria-hidden="true">
-              <path fillRule="evenodd" clipRule="evenodd" d="M12 2C6.477 2 2 6.477 2 12c0 4.42 2.865 8.166 6.839 9.489.5.092.682-.217.682-.482 0-.237-.008-.866-.013-1.7-2.782.603-3.369-1.34-3.369-1.34-.454-1.156-1.11-1.464-1.11-1.464-.908-.62.069-.608.069-.608 1.003.07 1.531 1.03 1.531 1.03.892 1.529 2.341 1.087 2.91.831.092-.646.35-1.086.636-1.336-2.22-.253-4.555-1.11-4.555-4.943 0-1.091.39-1.984 1.029-2.683-.103-.253-.446-1.27.098-2.647 0 0 .84-.269 2.75 1.025A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.294 2.747-1.025 2.747-1.025.546 1.377.203 2.394.1 2.647.64.699 1.028 1.592 1.028 2.683 0 3.842-2.339 4.687-4.566 4.935.359.309.678.919.678 1.852 0 1.336-.012 2.415-.012 2.743 0 .267.18.577.688.479C19.138 20.164 22 16.418 22 12c0-5.523-4.477-10-10-10z" />
-            </svg>
-            <span>Star on GitHub</span>
-          </a>
           <SignedOut>
             <button
               onClick={onSignIn}
@@ -175,10 +315,28 @@ export function LandingPage({ onStartPractice, onSignIn }: { onStartPractice: ()
         <div className="md:hidden fixed inset-x-0 top-[73px] bottom-0 bg-clay-canvas/95 backdrop-blur-md z-40 border-t border-clay-hairline p-6 pb-10 flex flex-col justify-between overflow-y-auto scrollbar-none animate-[fadeIn_0.2s_ease-out]">
           <nav className="flex flex-col gap-6 text-base font-semibold text-clay-ink text-left">
             <a href="#sandbox" onClick={() => setIsMobileMenuOpen(false)} className="py-2 border-b border-clay-hairline hover:text-clay-pink">Interactive MCQ</a>
-            <a href="#bento-stats" onClick={() => setIsMobileMenuOpen(false)} className="py-2 border-b border-clay-hairline hover:text-clay-pink">Database Bento</a>
-            <a href="#comparison" onClick={() => setIsMobileMenuOpen(false)} className="py-2 border-b border-clay-hairline hover:text-clay-pink">Pain Points</a>
-            <a href="#active-recall" onClick={() => setIsMobileMenuOpen(false)} className="py-2 border-b border-clay-hairline hover:text-clay-pink">Habit Loops</a>
+            <a href="#manifesto" onClick={() => setIsMobileMenuOpen(false)} className="py-2 border-b border-clay-hairline hover:text-clay-pink">Manifesto</a>
+            <a href="#features" onClick={() => setIsMobileMenuOpen(false)} className="py-2 border-b border-clay-hairline hover:text-clay-pink">Features</a>
+            <a href="#developer-story" onClick={() => setIsMobileMenuOpen(false)} className="py-2 border-b border-clay-hairline hover:text-clay-pink">Developer Story</a>
             <a href="#faq" onClick={() => setIsMobileMenuOpen(false)} className="py-2 border-b border-clay-hairline hover:text-clay-pink">FAQ</a>
+            <button 
+              onClick={() => { 
+                setIsMobileMenuOpen(false); 
+                onViewRoadmap(); 
+              }} 
+              className="py-2 border-b border-clay-hairline hover:text-clay-pink text-left bg-transparent border-0 p-0 font-semibold text-base cursor-pointer"
+            >
+              Product Roadmap
+            </button>
+            <button 
+              onClick={() => { 
+                setIsMobileMenuOpen(false); 
+                onViewContribute(); 
+              }} 
+              className="py-2 border-b border-clay-hairline hover:text-clay-pink text-left bg-transparent border-0 p-0 font-semibold text-base cursor-pointer"
+            >
+              Contribute & Submit
+            </button>
           </nav>
  
           <div className="flex flex-col gap-4 mb-8">
@@ -196,9 +354,9 @@ export function LandingPage({ onStartPractice, onSignIn }: { onStartPractice: ()
               </button>
               <button
                 onClick={() => { setIsMobileMenuOpen(false); onSignIn(); }}
-                className="w-full bg-clay-surface-soft border border-clay-hairline hover:bg-clay-surface-strong text-clay-ink font-semibold h-12 rounded-clay-md transition-all flex items-center justify-center gap-2 text-sm cursor-pointer"
+                className="w-full bg-clay-pink/10 border border-clay-pink/20 hover:bg-clay-pink/20 text-clay-pink font-bold h-12 rounded-clay-md transition-all flex items-center justify-center gap-2 text-sm cursor-pointer shadow-sm hover:shadow"
               >
-                <Sparkles className="w-4 h-4 text-clay-pink fill-current" />
+                <Sparkles className="w-4 h-4 text-clay-pink fill-current animate-pulse" />
                 <span>Sign Up to Sync Streaks</span>
               </button>
             </SignedOut>
@@ -214,17 +372,6 @@ export function LandingPage({ onStartPractice, onSignIn }: { onStartPractice: ()
                 <UserButton showName afterSignOutUrl="/" />
               </div>
             </SignedIn>
-            <a
-              href="https://github.com"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="w-full bg-clay-canvas border border-clay-hairline text-clay-muted hover:text-clay-ink font-semibold h-12 rounded-clay-md transition-all flex items-center justify-center gap-2 text-sm"
-            >
-              <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24" aria-hidden="true">
-                <path fillRule="evenodd" clipRule="evenodd" d="M12 2C6.477 2 2 6.477 2 12c0 4.42 2.865 8.166 6.839 9.489.5.092.682-.217.682-.482 0-.237-.008-.866-.013-1.7-2.782.603-3.369-1.34-3.369-1.34-.454-1.156-1.11-1.464-1.11-1.464-.908-.62.069-.608.069-.608 1.003.07 1.531 1.03 1.531 1.03.892 1.529 2.341 1.087 2.91.831.092-.646.35-1.086.636-1.336-2.22-.253-4.555-1.11-4.555-4.943 0-1.091.39-1.984 1.029-2.683-.103-.253-.446-1.27.098-2.647 0 0 .84-.269 2.75 1.025A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.294 2.747-1.025 2.747-1.025.546 1.377.203 2.394.1 2.647.64.699 1.028 1.592 1.028 2.683 0 3.842-2.339 4.687-4.566 4.935.359.309.678.919.678 1.852 0 1.336-.012 2.415-.012 2.743 0 .267.18.577.688.479C19.138 20.164 22 16.418 22 12c0-5.523-4.477-10-10-10z" />
-              </svg>
-              <span>Star on GitHub</span>
-            </a>
           </div>
         </div>
       )}
@@ -233,19 +380,18 @@ export function LandingPage({ onStartPractice, onSignIn }: { onStartPractice: ()
       <section className="relative py-12 md:py-24 px-6 md:px-12 max-w-7xl mx-auto w-full z-20 flex flex-col lg:flex-row items-center gap-10 md:gap-16">
         
         {/* Left Side: Copywriting & Actions */}
-        <div className="flex-1 text-left flex flex-col items-start w-full">
+        <div className="flex-1 text-left flex flex-col items-start w-full animate-fade-in-up">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-clay-surface-strong border border-clay-hairline text-clay-ink text-xs font-semibold tracking-wide uppercase mb-6">
-            <Sparkles className="w-3.5 h-3.5 text-clay-pink" />
-            <span>100% Free and Open-Source PG Prep</span>
+            <span>Built by a 3rd Year MBBS Student (Solo Project)</span>
           </div>
 
           {/* Headline */}
           <h1 className="font-rubik text-3xl sm:text-5xl md:text-[56px] leading-[1.1] md:leading-[1.05] font-medium text-clay-ink tracking-[-0.04em] mb-6 w-full">
-            Stop Paying <span className="text-clay-pink font-medium border-b-2 border-clay-pink/20">₹25,000/year</span> for Prep. OpenMedQ is Free.
+            Your brain is not a sieve. The prep system is just broken.
           </h1>
 
           <p className="text-clay-body text-sm sm:text-base md:text-lg leading-relaxed mb-10 max-w-prose">
-            Master NEET PG, FMGE, and INI-CET with high-yield clinical MCQs and active recall. Genuinely free (no trials, no locked-out explanations). Built by doctors, hosted on the edge.
+            You spend 12 hours on clinical wards, get back to your room exhausted, open a question bank, and realize you forgot last week's notes. It makes you feel like an imposter. But it is not your fault. I built OpenMedQ as a fully unlocked, offline-first practice suite to help us defeat the forgetting curve without commercial paywalls.
           </p>
 
           <div className="flex flex-col sm:flex-row gap-4 w-full max-w-md">
@@ -265,9 +411,9 @@ export function LandingPage({ onStartPractice, onSignIn }: { onStartPractice: ()
             <SignedOut>
               <button
                 onClick={onSignIn}
-                className="flex-1 bg-clay-canvas border border-clay-hairline hover:bg-clay-surface-soft text-clay-ink font-semibold h-12 rounded-clay-md active:scale-98 transition-all duration-300 flex items-center justify-center gap-2 text-sm cursor-pointer"
+                className="flex-1 bg-clay-pink/10 border border-clay-pink/20 hover:bg-clay-pink/20 text-clay-pink font-bold h-12 rounded-clay-md active:scale-98 transition-all duration-300 flex items-center justify-center gap-2 text-sm cursor-pointer shadow-sm hover:shadow"
               >
-                <Sparkles className="w-4 h-4 text-clay-pink fill-current" />
+                <Sparkles className="w-4 h-4 text-clay-pink fill-current animate-pulse" />
                 <span>Sign Up to Sync Streaks</span>
               </button>
             </SignedOut>
@@ -275,59 +421,37 @@ export function LandingPage({ onStartPractice, onSignIn }: { onStartPractice: ()
         </div>
 
         {/* Right Side: Hero Illustration Card */}
-        <div className="flex-1 w-full max-w-lg">
-          <div className="bg-clay-surface-soft border border-clay-hairline rounded-clay-xl p-6 md:p-8 flex flex-col items-center justify-center min-h-[300px] md:min-h-[350px] shadow-sm relative overflow-hidden group">
-            {/* Ambient clay shape decoration */}
-            <div className="absolute -top-10 -left-10 w-28 h-28 rounded-full bg-clay-lavender/30 filter blur-xl" />
-            <div className="absolute -bottom-10 -right-10 w-32 h-32 rounded-full bg-clay-peach/30 filter blur-xl" />
-
-            {/* Custom SVG Clay Brain Mascot */}
-            <svg className="w-44 h-44 md:w-56 md:h-56 drop-shadow-lg group-hover:scale-105 transition-transform duration-500" viewBox="0 0 200 200" fill="none">
-              <defs>
-                <radialGradient id="clay-brain-grad" cx="50%" cy="40%" r="50%" fx="30%" fy="30%">
-                  <stop offset="0%" stopColor="#ffb8d1" />
-                  <stop offset="60%" stopColor="#ff4d8b" />
-                  <stop offset="100%" stopColor="#c2255c" />
-                </radialGradient>
-                <filter id="clay-shadow" x="-10%" y="-10%" width="120%" height="120%">
-                  <feDropShadow dx="2" dy="8" stdDeviation="5" floodColor="#0a0a0a" floodOpacity="0.12" />
-                </filter>
-              </defs>
-
-              <ellipse cx="100" cy="170" rx="60" ry="12" fill="#ebe6d6" />
-              <path d="M 100 60 C 70 60, 50 75, 50 100 C 50 120, 65 135, 80 135 C 80 145, 95 145, 100 135 Z" fill="url(#clay-brain-grad)" filter="url(#clay-shadow)" />
-              <path d="M 100 60 C 130 60, 150 75, 150 100 C 150 120, 135 135, 120 135 C 120 145, 105 145, 100 135 Z" fill="url(#clay-brain-grad)" filter="url(#clay-shadow)" />
-
-              <path d="M 68 85 C 75 80, 85 90, 80 98" stroke="#ffffff" strokeWidth="4" strokeLinecap="round" opacity="0.6" />
-              <path d="M 132 85 C 125 80, 115 90, 120 98" stroke="#ffffff" strokeWidth="4" strokeLinecap="round" opacity="0.6" />
-              <path d="M 62 108 C 72 108, 80 115, 76 122" stroke="#ffffff" strokeWidth="4" strokeLinecap="round" opacity="0.6" />
-              <path d="M 138 108 C 128 108, 120 115, 124 122" stroke="#ffffff" strokeWidth="4" strokeLinecap="round" opacity="0.6" />
-              <path d="M 90 75 C 95 85, 95 95, 90 105" stroke="#ffffff" strokeWidth="4" strokeLinecap="round" opacity="0.6" />
-              <path d="M 110 75 C 105 85, 105 95, 110 105" stroke="#ffffff" strokeWidth="4" strokeLinecap="round" opacity="0.6" />
-
-              <rect x="65" y="92" width="30" height="20" rx="8" fill="none" stroke="#0a0a0a" strokeWidth="6" />
-              <rect x="105" y="92" width="30" height="20" rx="8" fill="none" stroke="#0a0a0a" strokeWidth="6" />
-              <line x1="95" y1="102" x2="105" y2="102" stroke="#0a0a0a" strokeWidth="6" />
-              <path d="M 50 102 C 55 98, 65 98, 65 98" stroke="#0a0a0a" strokeWidth="4" />
-              <path d="M 150 102 C 145 98, 135 98, 135 98" stroke="#0a0a0a" strokeWidth="4" />
-
-              <circle cx="80" cy="102" r="3.5" fill="#0a0a0a" />
-              <circle cx="120" cy="102" r="3.5" fill="#0a0a0a" />
-
-              <path d="M 94 120 Q 100 126 106 120" stroke="#0a0a0a" strokeWidth="3" strokeLinecap="round" fill="none" />
-
-              <path d="M 60 135 C 60 155, 140 155, 140 135" stroke="#ff6b5a" strokeWidth="5" strokeLinecap="round" fill="none" />
-              <path d="M 100 152 L 100 162" stroke="#ff6b5a" strokeWidth="5" strokeLinecap="round" />
-              <circle cx="100" cy="165" r="8" fill="#ebe6d6" stroke="#ff6b5a" strokeWidth="3" />
-            </svg>
-
-            {/* Mascot description text */}
-            <span className="text-xs font-bold uppercase tracking-wider text-clay-muted mt-4">
-              "Dr. Sulcus" (OpenMedQ Mascot Figurine)
-            </span>
+        <div className="flex-1 w-full max-w-lg animate-fade-in-up delay-100">
+          <div className="bg-clay-surface-soft border border-clay-hairline rounded-clay-xl p-2 flex flex-col shadow-sm relative overflow-hidden group">
+            <img 
+              src="https://images.unsplash.com/photo-1584515979956-d9f6e5d09982?auto=format&fit=crop&w=800&q=80" 
+              alt="Clinical Practice and Medical Study" 
+              className="w-full h-[300px] md:h-[350px] object-cover rounded-clay-lg shadow-inner group-hover:scale-[1.02] transition-transform duration-500 ease-out" 
+            />
           </div>
         </div>
       </section>
+
+      {/* SUBJECTS SCROLLING MARQUEE */}
+      <div className="relative w-full overflow-hidden bg-clay-surface-soft py-5 border-y border-clay-hairline z-20">
+        <div className="absolute inset-y-0 left-0 w-12 sm:w-24 bg-gradient-to-r from-clay-surface-soft to-transparent z-10 pointer-events-none" />
+        <div className="absolute inset-y-0 right-0 w-12 sm:w-24 bg-gradient-to-l from-clay-surface-soft to-transparent z-10 pointer-events-none" />
+
+        <div className="animate-marquee gap-6 items-center">
+          {/* Loop twice for infinite marquee */}
+          {[...mbbsSubjects, ...mbbsSubjects].map((subject, idx) => (
+            <div
+              key={idx}
+              className="flex items-center gap-2 bg-clay-canvas border border-clay-hairline rounded-full px-4 py-1.5 hover:bg-clay-surface-card transition-all duration-300 select-none shrink-0"
+            >
+              <span className="text-base select-none shrink-0" role="img" aria-label={subject}>
+                {subjectEmojis[subject] || '📚'}
+              </span>
+              <span className="text-xs sm:text-sm font-semibold text-clay-ink">{subject}</span>
+            </div>
+          ))}
+        </div>
+      </div>
 
       {/* INTERACTIVE MCQ SANDBOX SECTION */}
       <section id="sandbox" className="py-12 px-6 md:px-12 max-w-7xl mx-auto w-full z-20">
@@ -344,7 +468,7 @@ export function LandingPage({ onStartPractice, onSignIn }: { onStartPractice: ()
                 Interactive Sandbox
               </span>
               <h2 className="font-rubik text-2xl sm:text-3xl md:text-4xl font-medium tracking-[-0.03em] mb-4 text-clay-ink leading-tight">
-                Try a NEET PG high-yield card.
+                Try a high-yield Pathology card.
               </h2>
               <p className="text-clay-ink/80 text-xs sm:text-sm md:text-base leading-relaxed mb-6 max-w-prose">
                 Active recall is standard for elite clinical scores. Try this pathology card without setting up any credentials. See instantaneous feedback and unlock explanations.
@@ -352,7 +476,7 @@ export function LandingPage({ onStartPractice, onSignIn }: { onStartPractice: ()
               <div className="flex items-center flex-wrap gap-4 text-[10px] sm:text-xs font-bold">
                 <span className="flex items-center gap-1">
                   <Award className="w-4 h-4 text-clay-ochre fill-current" />
-                  NEET PG High-Yield
+                  MBBS High-Yield
                 </span>
                 <span className="flex items-center gap-1">
                   <WifiOff className="w-4 h-4" />
@@ -387,9 +511,9 @@ export function LandingPage({ onStartPractice, onSignIn }: { onStartPractice: ()
                 </div>
 
                 {/* Question */}
-                <p className="text-clay-ink font-semibold text-sm sm:text-base md:text-lg leading-relaxed mb-6">
-                  A 38-week pregnant woman with poorly controlled gestational diabetes delivers a healthy neonate. Which of the following morphological responses would most likely be observed in the pancreatic islets of the neonate due to maternal hyperglycemia?
-                </p>
+                <div className="text-clay-ink font-semibold text-sm sm:text-base md:text-lg leading-relaxed mb-6">
+                  <MarkdownRenderer content={mcqQuestionText} />
+                </div>
 
                 {/* Options */}
                 <div className="flex flex-col gap-3 mb-6">
@@ -437,7 +561,9 @@ export function LandingPage({ onStartPractice, onSignIn }: { onStartPractice: ()
                           }`}>
                             {option.key}
                           </span>
-                          <span className="text-xs sm:text-sm md:text-base leading-snug">{option.text}</span>
+                          <span className="text-xs sm:text-sm md:text-base leading-snug">
+                            <MarkdownRenderer content={option.text} inline />
+                          </span>
                         </div>
                         {feedbackIcon}
                       </button>
@@ -452,16 +578,16 @@ export function LandingPage({ onStartPractice, onSignIn }: { onStartPractice: ()
                       <HelpCircle className="w-4.5 h-4.5 text-clay-pink" />
                       <h4 className="font-bold text-clay-ink text-xs uppercase tracking-wider">High-Yield Explanation</h4>
                     </div>
-                    <p className="text-clay-body text-xs sm:text-sm leading-relaxed max-w-prose">
-                      Maternal hyperglycemia transfers excess glucose to the fetus. The fetal pancreas responds by producing insulin, causing **physiologic hyperplasia** of the islets (beta-cells). Post-delivery, the hyperinsulinemia persists briefly, causing potential neonatal hypoglycemia.
-                    </p>
+                    <div className="text-clay-body text-xs sm:text-sm leading-relaxed max-w-prose">
+                      <MarkdownRenderer content={mcqExplanationText} />
+                    </div>
 
-                    {/* Zeigarnik nudge inside the card */}
+                    {/* Loop nudge inside the card */}
                     <div className="bg-clay-surface-soft border border-clay-hairline rounded-clay-md p-3 sm:p-4 flex flex-col sm:flex-row items-center justify-between gap-4">
                       <div className="text-left">
                         <div className="flex items-center gap-1.5 text-xs font-bold text-clay-pink uppercase tracking-wider mb-1">
                           <Zap className="w-3.5 h-3.5 fill-current" />
-                          <span>5 high-yield loops open today</span>
+                          <span>5 active recall loops open today</span>
                         </div>
                         <p className="text-clay-body text-[11px] sm:text-xs font-medium">
                           You have 4 more pathology questions waiting in your daily high-yield set.
@@ -492,9 +618,291 @@ export function LandingPage({ onStartPractice, onSignIn }: { onStartPractice: ()
         </div>
       </section>
 
-      {/* BENTO GRID OF STATS */}
-      <section id="bento-stats" className="py-16 md:py-24 px-6 md:px-12 max-w-7xl mx-auto w-full z-20 border-t border-clay-hairline">
-        <div className="text-center mb-12 md:text-center">
+      {/* THE MANIFESTO SECTION */}
+      <section id="manifesto" className="py-16 md:py-24 px-6 md:px-12 max-w-7xl mx-auto w-full z-20 border-t border-clay-hairline">
+        <div className="bg-clay-surface-card rounded-clay-xl border border-clay-hairline p-8 md:p-12 text-left relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-96 h-96 rounded-full bg-clay-pink/5 filter blur-3xl pointer-events-none" />
+          
+          <div className="max-w-3xl">
+            <span className="text-xs font-bold uppercase tracking-widest text-clay-pink mb-3 block">
+              The OpenMedQ Manifesto
+            </span>
+            <h2 className="font-rubik text-2xl sm:text-3xl md:text-5xl font-medium tracking-[-0.03em] mb-6">
+              Why are we paying corporations to study?
+            </h2>
+            <div className="space-y-6 text-clay-body text-sm sm:text-base md:text-lg leading-relaxed">
+              <p>
+                Medical school is hard enough. The exhaustion of night duties, the constant clinical rotations, and the imposter syndrome are heavy burdens. Yet, commercial prep platforms treat medical students as cash cows.
+              </p>
+              <p>
+                They block standard clinical explanations behind massive paywalls, lock you out of your own bookmarks the moment your plan expires, and flood your phone with aggressive sales calls.
+              </p>
+              <p className="font-semibold text-clay-ink">
+                We refuse to be locked out of our own education. OpenMedQ is a student-built alternative. It has zero subscription fees, zero corporate boards, and is built by a fellow peer who understands what clinical study looks like in the trenches.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* FEATURE SHOWCASE SECTION */}
+      <section id="features" className="py-16 md:py-24 px-6 md:px-12 max-w-7xl mx-auto w-full z-20 border-t border-clay-hairline">
+        <div className="text-center mb-16">
+          <span className="text-xs font-bold uppercase tracking-widest text-clay-pink mb-3 block">
+            Designed for Clinical Rotations
+          </span>
+          <h2 className="font-rubik text-2xl sm:text-3xl md:text-5xl font-medium tracking-[-0.03em] mb-4">
+            Re-Engineered Study Suite Features
+          </h2>
+          <p className="text-clay-body max-w-xl mx-auto text-xs sm:text-sm md:text-base">
+            No bloated visual features or technical metrics. Just utilities built to survive actual internship schedules.
+          </p>
+        </div>
+
+        {/* Feature Cards Grid (Teal -> Pink -> Lavender -> Peach) */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-5xl mx-auto">
+          
+          {/* Card 1: Subject Search & Prof Filters (Teal) */}
+          <div className="bg-clay-teal rounded-clay-xl border border-transparent p-6 sm:p-8 text-white flex flex-col justify-between hover-clay-card min-h-[360px]">
+            <div className="text-left">
+              <span className="px-2.5 py-1 rounded bg-white/10 text-clay-mint text-[10px] font-bold uppercase tracking-wider mb-4 inline-block">
+                Navigation
+              </span>
+              <h3 className="font-rubik text-lg sm:text-xl font-medium tracking-tight mb-3 text-white">
+                Syllabus Search & Prof Filters
+              </h3>
+              <p className="text-zinc-300 text-xs sm:text-sm leading-relaxed mb-6">
+                Find subjects instantly. Filter by academic year phases (Pre-Clinical, Para-Clinical, Short Subjects, or Clinical Core) to align with your current college postings.
+              </p>
+            </div>
+            {/* UI Fragment */}
+            <div className="bg-white/5 border border-white/10 rounded-clay-lg p-4 text-left space-y-3">
+              <div className="flex items-center gap-2 bg-white/10 rounded-clay-md px-3 py-1.5 text-xs text-white">
+                <Search className="w-3.5 h-3.5 text-clay-mint" />
+                <span className="opacity-70">Search subjects (e.g. Pathology)...</span>
+              </div>
+              <div className="flex gap-2 overflow-x-auto scrollbar-none pb-1">
+                <span className="bg-clay-mint text-clay-teal px-2 py-0.5 rounded-full text-[9px] font-bold shrink-0">All</span>
+                <span className="bg-white/10 text-white/70 px-2 py-0.5 rounded-full text-[9px] font-bold shrink-0">1st Year</span>
+                <span className="bg-white/10 text-white/70 px-2 py-0.5 rounded-full text-[9px] font-bold shrink-0">2nd & 3rd Year</span>
+                <span className="bg-white/10 text-white/70 px-2 py-0.5 rounded-full text-[9px] font-bold shrink-0">Final Year</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Card 2: Subject Matrix & Topic Drilldowns (Pink) */}
+          <div className="bg-clay-pink rounded-clay-xl border border-transparent p-6 sm:p-8 text-white flex flex-col justify-between hover-clay-card min-h-[360px]">
+            <div className="text-left">
+              <span className="px-2.5 py-1 rounded bg-white/10 text-white text-[10px] font-bold uppercase tracking-wider mb-4 inline-block">
+                Matrix
+              </span>
+              <h3 className="font-rubik text-lg sm:text-xl font-medium tracking-tight mb-3 text-white">
+                Subject Performance Matrix
+              </h3>
+              <p className="text-zinc-100 text-xs sm:text-sm leading-relaxed mb-6">
+                Stop testing blindly. Click any subject card inside the performance grid to expand and drill down into topic-level completion stats and accuracy quotients.
+              </p>
+            </div>
+            {/* UI Fragment */}
+            <div className="bg-white/10 border border-white/20 rounded-clay-lg p-3 text-left space-y-2">
+              <div 
+                className="flex justify-between items-center bg-white/10 p-2 rounded-clay-md cursor-pointer select-none"
+                onClick={() => setDemoExpanded(!demoExpanded)}
+              >
+                <div className="text-left">
+                  <span className="text-[9px] opacity-75 block">Pathology</span>
+                  <span className="text-xs font-bold">Cell Injury & Adaptations</span>
+                </div>
+                {demoExpanded ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+              </div>
+              
+              {demoExpanded && (
+                <div className="bg-white/5 border border-white/10 rounded p-2 text-[10px] space-y-2 animate-fade-in">
+                  <div className="flex justify-between items-center">
+                    <span>Intracellular Accumulations</span>
+                    <span className="font-bold text-clay-mint">90% Done (85% Acc)</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span>Cell Death (Necrosis/Apoptosis)</span>
+                    <span className="font-bold text-clay-mint">60% Done (78% Acc)</span>
+                  </div>
+                </div>
+              )}
+              {!demoExpanded && (
+                <div className="text-[10px] opacity-60 text-center italic py-1">Click to expand subject matrix demo</div>
+              )}
+            </div>
+          </div>
+
+          {/* Card 3: FSRS v6 Spaced Repetition Engine (Lavender) */}
+          <div className="bg-clay-lavender rounded-clay-xl border border-clay-hairline p-6 sm:p-8 text-clay-ink flex flex-col justify-between hover-clay-card min-h-[360px]">
+            <div className="text-left">
+              <span className="px-2.5 py-1 rounded bg-clay-ink/10 text-clay-ink text-[10px] font-bold uppercase tracking-wider mb-4 inline-block">
+                FSRS v6 Spaced Repetition
+              </span>
+              <h3 className="font-rubik text-lg sm:text-xl font-medium tracking-tight mb-3 text-clay-ink">
+                FSRS Optimization Engine
+              </h3>
+              <p className="text-clay-body text-xs sm:text-sm leading-relaxed mb-6">
+                Forget static revision calendars. We use the state-of-the-art Free Spaced Repetition Scheduler. Grade your recall response to dynamically expand card stability, difficulty, and next intervals in real time.
+              </p>
+            </div>
+            {/* UI Fragment (FSRS Simulator) */}
+            <div className="bg-clay-canvas border border-clay-hairline rounded-clay-lg p-3 sm:p-4 text-left space-y-3 shadow-inner">
+              <div className="flex justify-between items-center text-[10px] font-bold text-clay-muted">
+                <span>FSRS v6 State: <span className="text-clay-pink font-semibold">Active Memory Card</span></span>
+                {lastFsrsAction && (
+                  <span className="bg-clay-mint text-clay-teal px-1.5 py-0.5 rounded text-[8px] font-extrabold uppercase animate-pulse">
+                    Updated: {lastFsrsAction}
+                  </span>
+                )}
+              </div>
+              
+              <div className="bg-clay-surface-soft border border-clay-hairline rounded p-2.5 space-y-1.5 text-xs text-clay-body font-mono">
+                <div className="flex justify-between">
+                  <span>Stability (S):</span>
+                  <span className="font-bold text-clay-ink">{fsrsStability.toFixed(1)} days</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Difficulty (D):</span>
+                  <span className="font-bold text-clay-ink">{fsrsDifficulty.toFixed(1)}/10</span>
+                </div>
+                <div className="flex justify-between border-t border-clay-hairline/60 pt-1.5 font-bold text-clay-pink">
+                  <span>Next Review Interval:</span>
+                  <span>{fsrsInterval}</span>
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-4 gap-1 pt-1">
+                <button
+                  onClick={() => handleFsrsSimulate('again')}
+                  className={`text-[9px] font-bold py-1 px-0.5 rounded text-center border transition-all duration-150 cursor-pointer ${
+                    lastFsrsAction === 'again'
+                      ? 'bg-rose-500 text-white border-rose-600 shadow-sm scale-95'
+                      : 'bg-white text-rose-600 border-rose-200 hover:bg-rose-50'
+                  }`}
+                >
+                  Again
+                </button>
+                <button
+                  onClick={() => handleFsrsSimulate('hard')}
+                  className={`text-[9px] font-bold py-1 px-0.5 rounded text-center border transition-all duration-150 cursor-pointer ${
+                    lastFsrsAction === 'hard'
+                      ? 'bg-amber-500 text-white border-amber-600 shadow-sm scale-95'
+                      : 'bg-white text-amber-600 border-amber-200 hover:bg-amber-50'
+                  }`}
+                >
+                  Hard
+                </button>
+                <button
+                  onClick={() => handleFsrsSimulate('good')}
+                  className={`text-[9px] font-bold py-1 px-0.5 rounded text-center border transition-all duration-150 cursor-pointer ${
+                    lastFsrsAction === 'good'
+                      ? 'bg-emerald-500 text-white border-emerald-600 shadow-sm scale-95'
+                      : 'bg-white text-emerald-600 border-emerald-200 hover:bg-emerald-50'
+                  }`}
+                >
+                  Good
+                </button>
+                <button
+                  onClick={() => handleFsrsSimulate('easy')}
+                  className={`text-[9px] font-bold py-1 px-0.5 rounded text-center border transition-all duration-150 cursor-pointer ${
+                    lastFsrsAction === 'easy'
+                      ? 'bg-sky-500 text-white border-sky-600 shadow-sm scale-95'
+                      : 'bg-white text-sky-600 border-sky-200 hover:bg-sky-50'
+                  }`}
+                >
+                  Easy
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Card 4: Weak Spots & Memory Slips (Peach) */}
+          <div className="bg-clay-peach rounded-clay-xl border border-clay-hairline p-6 sm:p-8 text-clay-ink flex flex-col justify-between hover-clay-card min-h-[360px]">
+            <div className="text-left">
+              <span className="px-2.5 py-1 rounded bg-clay-ink/10 text-clay-ink text-[10px] font-bold uppercase tracking-wider mb-4 inline-block">
+                Intervention
+              </span>
+              <h3 className="font-rubik text-lg sm:text-xl font-medium tracking-tight mb-3 text-clay-ink">
+                Weak Spots & Memory Slips
+              </h3>
+              <p className="text-clay-body text-xs sm:text-sm leading-relaxed mb-6">
+                Failing a card repeatedly creates a Troublesome Concept. We automatically isolate concepts with multiple memory slips (failed 3+ times) and queue them in custom modules so you can fix them.
+              </p>
+            </div>
+            {/* UI Fragment */}
+            <div className="bg-clay-canvas border border-clay-hairline rounded-clay-lg p-3 text-left space-y-2">
+              <div className="flex justify-between items-center text-[10px] text-red-600 font-bold">
+                <span className="flex items-center gap-1"><AlertCircle className="w-3 h-3" /> Troublesome Concept</span>
+                <span>Memory Slips: 4x</span>
+              </div>
+              <p className="text-[10px] text-clay-body line-clamp-1 italic bg-clay-surface-soft p-1.5 rounded border border-clay-hairline">
+                "Which morphological response is seen in pancreatic islets..."
+              </p>
+              <button
+                onClick={onStartPractice}
+                className="w-full bg-clay-pink text-white text-[10px] font-bold py-1.5 rounded-clay-md text-center shadow-sm cursor-pointer"
+              >
+                Target Weak Spots
+              </button>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+      {/* DEVELOPER STORY SECTION */}
+      <section id="developer-story" className="py-16 md:py-24 px-6 md:px-12 max-w-7xl mx-auto w-full z-20 border-t border-clay-hairline">
+        
+        {/* Saturated feature-card-ochre */}
+        <div className="bg-clay-ochre rounded-clay-xl border border-clay-hairline p-6 sm:p-10 md:p-12 text-clay-ink text-left relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-96 h-96 rounded-full bg-white/10 filter blur-3xl pointer-events-none" />
+
+          <div className="max-w-3xl">
+            <span className="px-3 py-1 rounded-full bg-clay-ink/10 text-clay-ink text-xs font-bold uppercase tracking-wider mb-6 inline-block">
+              A Solo Project, A Shared Movement
+            </span>
+            
+            <h2 className="font-rubik text-2xl sm:text-3xl md:text-4xl font-medium tracking-[-0.03em] mb-6 text-clay-ink">
+              Built in a Hostel Room between Clinical Postings
+            </h2>
+            
+            <div className="space-y-4 text-clay-body text-xs sm:text-sm md:text-base leading-relaxed">
+              <p>
+                I am a 3rd year medical student. I do not have a venture capital fund, a sales team, or commercial interests. I built OpenMedQ because I was tired of medical school being treated as a market to exploit.
+              </p>
+              <p>
+                I designed the architecture to run completely client-side in your browser, utilizing local storage. This keeps my hosting cost at ₹0. Because there are no expensive servers, there is no need for paywalls, subscription bills, or advertising.
+              </p>
+              <p className="font-semibold text-clay-ink">
+                If you find a typo, an outdated clinical detail, or a wrong reference explanation, you can correct it. You can check the codebase or submit edits directly on GitHub. Join the movement: let's build an open tool that we can pass down to our juniors.
+              </p>
+            </div>
+
+            <div className="mt-8 flex flex-col sm:flex-row gap-4">
+              <a
+                href="https://github.com/openmedq/openmedq"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="bg-clay-ink hover:bg-neutral-800 text-white font-bold px-6 py-3 rounded-clay-md text-xs transition-all duration-200 cursor-pointer text-center"
+              >
+                Join the Codebase on GitHub
+              </a>
+              <button
+                onClick={onStartPractice}
+                className="bg-clay-canvas border border-clay-hairline hover:bg-clay-surface-soft text-clay-ink font-semibold px-6 py-3 rounded-clay-md text-xs transition-all duration-200 cursor-pointer text-center"
+              >
+                Practice in Guest Mode
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* BENTO GRID ABOUT & DATA LIMITS */}
+      <section className="py-16 md:py-24 px-6 md:px-12 max-w-7xl mx-auto w-full z-20 border-t border-clay-hairline">
+        <div className="text-center mb-12">
           <span className="text-xs font-bold uppercase tracking-widest text-clay-pink mb-3 block">
             OpenMedQ by the Numbers
           </span>
@@ -502,19 +910,21 @@ export function LandingPage({ onStartPractice, onSignIn }: { onStartPractice: ()
             Curated Database. Zero Friction.
           </h2>
           <p className="text-clay-body max-w-xl mx-auto text-xs sm:text-sm md:text-base">
-            Engineered to run locally in your browser to maintain high reliability and eliminate licensing overheads.
+            No filler questions. No paywalled explanations.
           </p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto">
-          {/* Card 1: 15,000+ Questions */}
-          <div className="bg-clay-peach rounded-clay-xl border border-clay-hairline p-6 sm:p-8 flex flex-col justify-between md:col-span-2 min-h-[220px] md:min-h-[240px] text-left">
+          {/* Card 1: 190,645 Questions */}
+          <div ref={counterRef} className="bg-clay-peach rounded-clay-xl border border-clay-hairline p-6 sm:p-8 flex flex-col justify-between md:col-span-2 min-h-[220px] md:min-h-[240px] text-left">
             <div className="flex justify-between items-start mb-4">
               <span className="text-xs uppercase font-bold tracking-wider text-clay-ink/70">Database Scale</span>
               <Database className="w-6 h-6 text-clay-ink/60" />
             </div>
             <div>
-              <span className="font-rubik text-3xl sm:text-4xl md:text-5xl font-medium tracking-[-0.04em] text-clay-ink block mb-2">15,000+ Questions</span>
+              <span className="font-rubik text-3xl sm:text-4xl md:text-5xl font-medium tracking-[-0.04em] text-clay-ink block mb-2">
+                {questionCount.toLocaleString()} Questions
+              </span>
               <p className="text-xs sm:text-sm text-clay-body leading-relaxed max-w-prose">
                 Directly mapped to standard MBBS subjects and peer-reviewed by residency top-rankers. No duplicate stubs or low-quality AI placeholders.
               </p>
@@ -558,24 +968,16 @@ export function LandingPage({ onStartPractice, onSignIn }: { onStartPractice: ()
             <div>
               <span className="font-rubik text-3xl sm:text-4xl md:text-5xl font-medium tracking-[-0.04em] text-clay-ink block mb-2">₹0 Subscription Costs</span>
               <p className="text-xs sm:text-sm text-clay-body leading-relaxed max-w-prose">
-                Built on optimized edge architecture using fast content delivery and secure local caching. We keep operational costs at zero to ensure this platform remains open and free forever.
+                Built on client-side cache technologies. We keep operational hosting costs at zero to ensure this platform remains open and free forever.
               </p>
             </div>
           </div>
-        </div>
-
-        {/* CONTRIBUTOR MARQUEE */}
-        <div className="text-center mt-16 md:mt-20">
-          <span className="text-xs uppercase font-bold tracking-widest text-clay-pink mb-6 block px-4">
-            Open-Source Peer Reviewed & Built By Indian Medical Graduates
-          </span>
-          <ContributorMarquee />
         </div>
       </section>
 
       {/* PAIN POINT COMPARISON */}
       <section id="comparison" className="py-16 md:py-24 px-6 md:px-12 max-w-7xl mx-auto w-full z-20 border-t border-clay-hairline">
-        <div className="text-center mb-12 md:text-center">
+        <div className="text-center mb-12">
           <span className="text-xs font-bold uppercase tracking-widest text-clay-pink mb-3 block">
             Pricing & Structural Reality
           </span>
@@ -583,14 +985,14 @@ export function LandingPage({ onStartPractice, onSignIn }: { onStartPractice: ()
             A New Model for Indian Medical Prep
           </h2>
           <p className="text-clay-body max-w-xl mx-auto text-xs sm:text-sm md:text-base">
-            No massive bills, no aggressive upselling calls, no paywalled bookmarks.
+            No paywalled explanations or aggressive marketing pitches.
           </p>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 max-w-5xl mx-auto items-stretch">
           
           {/* Commercial Platform Card */}
-          <div className="bg-clay-surface-card rounded-clay-xl border border-clay-hairline p-6 sm:p-8 flex flex-col justify-between">
+          <div className="bg-clay-surface-card rounded-clay-xl border border-clay-hairline p-6 sm:p-8 flex flex-col justify-between text-left">
             <div>
               <div className="flex items-center justify-between mb-6">
                 <span className="text-base font-bold text-clay-ink">Commercial PG Prep Apps</span>
@@ -604,34 +1006,34 @@ export function LandingPage({ onStartPractice, onSignIn }: { onStartPractice: ()
               <ul className="space-y-4 text-xs sm:text-sm text-clay-body text-left">
                 <li className="flex items-start gap-3">
                   <XCircle className="w-5 h-5 text-rose-500 shrink-0 mt-0.5" />
-                  <span>Aggressive paywalls blocking explanation text and bookmarked questions</span>
+                  <span>Exorbitant plans funded by student debt or parents</span>
                 </li>
                 <li className="flex items-start gap-3">
                   <XCircle className="w-5 h-5 text-rose-500 shrink-0 mt-0.5" />
-                  <span>Requires persistent internet (almost impossible in clinical ward basements)</span>
+                  <span>Requires persistent internet connection (unusable inside wards)</span>
                 </li>
                 <li className="flex items-start gap-3">
                   <XCircle className="w-5 h-5 text-rose-500 shrink-0 mt-0.5" />
-                  <span>Closed ecosystem: database errors or content lapses cannot be peer-corrected</span>
+                  <span>Closed databases: mistakes cannot be peer-corrected or edited by users</span>
                 </li>
               </ul>
             </div>
             
             <div className="mt-8 pt-6 border-t border-clay-hairline text-[10px] sm:text-xs text-clay-muted text-left">
-              * Based on standard rates of Marrow Plan C and PrepLadder Elite subscriptions.
+              * Based on standard rates of typical corporate test prep modules.
             </div>
           </div>
 
           {/* OpenMedQ Card */}
-          <div className="bg-clay-teal rounded-clay-xl border border-transparent p-6 sm:p-8 text-white flex flex-col justify-between shadow-xl shadow-clay-teal/10 hover:shadow-clay-teal/20 transition-all duration-300">
-            <div className="text-left">
+          <div className="bg-clay-teal rounded-clay-xl border border-transparent p-6 sm:p-8 text-white flex flex-col justify-between shadow-xl shadow-clay-teal/10 hover:shadow-clay-teal/20 transition-all duration-300 text-left">
+            <div>
               <div className="flex items-center justify-between mb-6">
                 <span className="text-base font-bold text-clay-mint">OpenMedQ Platform</span>
                 <Unlock className="w-5 h-5 text-clay-mint" />
               </div>
 
               <div className="text-2xl sm:text-3xl font-bold text-white mb-6 tracking-tight">
-                ₹0 <span className="text-xs sm:text-sm font-normal text-clay-mint text-left block sm:inline">Free Forever (No Trial traps)</span>
+                ₹0 <span className="text-xs sm:text-sm font-normal text-clay-mint text-left block sm:inline">Free Forever (No paywalls)</span>
               </div>
 
               <ul className="space-y-4 text-xs sm:text-sm text-zinc-300">
@@ -641,11 +1043,11 @@ export function LandingPage({ onStartPractice, onSignIn }: { onStartPractice: ()
                 </li>
                 <li className="flex items-start gap-3">
                   <CheckCircle2 className="w-5 h-5 text-clay-mint shrink-0 mt-0.5" />
-                  <span>Offline-First Local Storage: Practice without cellular signal inside hospital basements</span>
+                  <span>Offline-First Local Storage: Practice without cellular signal inside clinical wards</span>
                 </li>
                 <li className="flex items-start gap-3">
                   <CheckCircle2 className="w-5 h-5 text-clay-mint shrink-0 mt-0.5" />
-                  <span>Fully open source: check the codebase, report correction issues on GitHub</span>
+                  <span>Fully open source: audit the codebase, request corrections directly on GitHub</span>
                 </li>
               </ul>
             </div>
@@ -661,7 +1063,7 @@ export function LandingPage({ onStartPractice, onSignIn }: { onStartPractice: ()
         </div>
       </section>
 
-      {/* GAMIFICATION & HABIT LOOP */}
+      {/* PRACTICE CHECKLIST WIDGET */}
       <section id="active-recall" className="py-16 md:py-24 px-6 md:px-12 max-w-7xl mx-auto w-full z-20 border-t border-clay-hairline">
         
         {/* Saturated feature-card-pink */}
@@ -673,7 +1075,7 @@ export function LandingPage({ onStartPractice, onSignIn }: { onStartPractice: ()
             {/* Left side text */}
             <div className="lg:col-span-5 text-left w-full">
               <span className="px-3 py-1 rounded-full bg-white/20 text-white text-xs font-bold uppercase tracking-wider mb-4 inline-block">
-                Zeigarnik Loop Mechanic
+                Daily Habit Loops
               </span>
               
               <h2 className="font-rubik text-2xl sm:text-3xl md:text-4xl font-medium tracking-[-0.03em] mb-4 text-white leading-tight">
@@ -681,7 +1083,7 @@ export function LandingPage({ onStartPractice, onSignIn }: { onStartPractice: ()
               </h2>
               
               <p className="text-zinc-100 text-xs sm:text-sm md:text-base leading-relaxed mb-6 max-w-prose">
-                Your brain hates leaving loops open. We use this behavioral mechanism to gently trigger daily practice, showing you incomplete pathology reviews or unreviewed bookmarks.
+                The brain retains information best when triggered consistently. OpenMedQ tracks your daily practice loops, showing you remaining revision ready items and troublesome weak spots to lock in concepts.
               </p>
 
               <div className="flex gap-4">
@@ -689,7 +1091,7 @@ export function LandingPage({ onStartPractice, onSignIn }: { onStartPractice: ()
                   onClick={onStartPractice}
                   className="bg-clay-canvas text-clay-ink hover:bg-clay-surface-soft font-bold px-6 py-3 rounded-clay-md transition-all active:scale-98 text-xs cursor-pointer"
                 >
-                  Try Active Recall
+                  Try Practice Suite
                 </button>
               </div>
             </div>
@@ -735,7 +1137,7 @@ export function LandingPage({ onStartPractice, onSignIn }: { onStartPractice: ()
                 {activeRecallTab === 'daily' ? (
                   <div className="space-y-4">
                     <div className="flex justify-between items-center mb-1">
-                      <span className="text-xs font-bold text-clay-muted">Completion Quotient</span>
+                      <span className="text-xs font-bold text-clay-muted">Completion Rate</span>
                       <span className="text-xs font-bold text-clay-pink">
                         {Math.round(
                           (simulatedTasks.filter(t => t.done).length / simulatedTasks.length) * 100
@@ -763,7 +1165,7 @@ export function LandingPage({ onStartPractice, onSignIn }: { onStartPractice: ()
                           onClick={() => toggleTask(task.id)}
                           className={`flex items-center justify-between p-3 sm:p-3.5 rounded-clay-md border transition-all duration-200 cursor-pointer select-none ${
                             task.done
-                              ? 'border-emerald-500/20 bg-emerald-50 text-clay-muted'
+                              ? 'border-emerald-500/20 bg-emerald-50 text-clay-muted animate-fade-in'
                               : 'border-clay-hairline bg-clay-canvas text-clay-ink hover:bg-clay-surface-soft'
                           }`}
                         >
@@ -794,7 +1196,7 @@ export function LandingPage({ onStartPractice, onSignIn }: { onStartPractice: ()
                       <div>
                         <div className="flex justify-between text-xs font-semibold mb-1">
                           <span className="text-clay-ink">Pathology</span>
-                          <span className="text-clay-pink">80% Mastered</span>
+                          <span className="text-clay-pink">80% Done</span>
                         </div>
                         <div className="w-full bg-clay-surface-strong h-2 rounded-full overflow-hidden">
                           <div className="bg-clay-pink h-full" style={{ width: '80%' }} />
@@ -804,7 +1206,7 @@ export function LandingPage({ onStartPractice, onSignIn }: { onStartPractice: ()
                       <div>
                         <div className="flex justify-between text-xs font-semibold mb-1">
                           <span className="text-clay-ink">Pharmacology</span>
-                          <span className="text-clay-ochre">45% Mastered</span>
+                          <span className="text-clay-ochre">45% Done</span>
                         </div>
                         <div className="w-full bg-clay-surface-strong h-2 rounded-full overflow-hidden">
                           <div className="bg-clay-ochre h-full" style={{ width: '45%' }} />
@@ -814,7 +1216,7 @@ export function LandingPage({ onStartPractice, onSignIn }: { onStartPractice: ()
                       <div>
                         <div className="flex justify-between text-xs font-semibold mb-1">
                           <span className="text-clay-ink">Physiology</span>
-                          <span className="text-clay-teal">65% Mastered</span>
+                          <span className="text-clay-teal">65% Done</span>
                         </div>
                         <div className="w-full bg-clay-surface-strong h-2 rounded-full overflow-hidden">
                           <div className="bg-clay-teal h-full" style={{ width: '65%' }} />
@@ -843,7 +1245,7 @@ export function LandingPage({ onStartPractice, onSignIn }: { onStartPractice: ()
 
       {/* FAQ SECTION */}
       <section id="faq" className="py-16 md:py-24 px-6 md:px-12 max-w-4xl mx-auto w-full z-20 border-t border-clay-hairline">
-        <div className="text-center mb-12 md:text-center">
+        <div className="text-center mb-12">
           <span className="text-xs font-bold uppercase tracking-widest text-clay-pink mb-3 block">
             Direct & Transparent Answers
           </span>
@@ -891,13 +1293,13 @@ export function LandingPage({ onStartPractice, onSignIn }: { onStartPractice: ()
         
         <div className="bg-clay-surface-soft rounded-clay-xl border border-clay-hairline p-6 sm:p-10 md:p-16 flex flex-col items-center shadow-sm relative">
           
-          <img src="/logo.png" className="w-12 h-12 rounded-clay-md shadow-sm mb-6 object-cover" alt="OpenMedQ Logo" />
+          <img src={logoSrc} className="w-12 h-12 rounded-clay-md shadow-sm mb-6 object-contain" alt="OpenMedQ Logo" />
 
           <h2 className="font-rubik text-2xl sm:text-3xl md:text-5xl font-medium tracking-[-0.04em] mb-6 text-clay-ink">
             Stop Paying. Start Mastering.
           </h2>
           <p className="text-clay-body text-xs sm:text-sm md:text-lg mb-10 leading-relaxed max-w-prose">
-            Gain immediate access to 15,000+ high-yield medical MCQs. Track your active recall, sync your study streaks, and prepare for NEET PG / FMGE / INI-CET on your own terms.
+            Gain immediate access to {totalDBQuestionCount.toLocaleString()}+ clinical questions. Track your active recall, sync your study streaks, and prepare for NEET PG / FMGE / INI-CET on your own terms.
           </p>
 
           <div className="w-full max-w-xs">
@@ -924,35 +1326,38 @@ export function LandingPage({ onStartPractice, onSignIn }: { onStartPractice: ()
           
           <div className="flex flex-col gap-4 max-w-xs text-left">
             <div className="flex items-center gap-3">
-              <img src="/logo.png" className="w-8 h-8 rounded-clay-md shadow-sm object-cover" alt="OpenMedQ Logo" />
+              <img src={logoSrc} className="w-8 h-8 rounded-clay-md shadow-sm object-contain" alt="OpenMedQ Logo" />
               <span className="font-bold text-lg text-clay-ink">OpenMedQ</span>
             </div>
             <p className="text-xs text-clay-muted leading-relaxed">
-              A 100% free, open-source medical education portal built by and for Indian medical students and graduates.
+              A 100% free, open-source medical education portal built solo by a 3rd year medical student for NEET PG, FMGE, and INI-CET preparation.
             </p>
           </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-8 md:gap-16">
-            <div className="text-left flex flex-col gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-8 md:gap-16 text-left">
+            <div className="flex flex-col gap-3">
               <span className="text-xs font-bold uppercase tracking-wider text-clay-ink">App</span>
               <a href="#sandbox" className="text-xs text-clay-muted hover:text-clay-ink transition-colors">Sandbox MCQ</a>
-              <a href="#bento-stats" className="text-xs text-clay-muted hover:text-clay-ink transition-colors">Bento Stats</a>
-              <a href="#comparison" className="text-xs text-clay-muted hover:text-clay-ink transition-colors">Comparison</a>
-              <a href="#active-recall" className="text-xs text-clay-muted hover:text-clay-ink transition-colors">Active Recall</a>
+              <a href="#manifesto" className="text-xs text-clay-muted hover:text-clay-ink transition-colors">Manifesto</a>
+              <a href="#features" className="text-xs text-clay-muted hover:text-clay-ink transition-colors">Features</a>
+              <a href="#developer-story" className="text-xs text-clay-muted hover:text-clay-ink transition-colors">Developer Story</a>
+              <a href="#active-recall" className="text-xs text-clay-muted hover:text-clay-ink transition-colors">Practice Widget</a>
             </div>
 
-            <div className="text-left flex flex-col gap-3">
-              <span className="text-xs font-bold uppercase tracking-wider text-clay-ink">Community</span>
-              <a href="https://github.com" target="_blank" rel="noopener noreferrer" className="text-xs text-clay-muted hover:text-clay-ink transition-colors">GitHub Repository</a>
-              <a href="#" className="text-xs text-clay-muted hover:text-clay-ink transition-colors">Discord Server</a>
-              <a href="#" className="text-xs text-clay-muted hover:text-clay-ink transition-colors">Submit Questions</a>
+            <div className="flex flex-col gap-3">
+              <span className="text-xs font-bold uppercase tracking-wider text-clay-ink">Community & Roadmap</span>
+              <button onClick={onViewRoadmap} className="text-xs text-clay-muted hover:text-clay-ink transition-colors text-left bg-transparent border-0 p-0 cursor-pointer">Product Roadmap</button>
+              <button onClick={onViewContribute} className="text-xs text-clay-muted hover:text-clay-ink transition-colors text-left bg-transparent border-0 p-0 cursor-pointer">Submit Corrections & Contribute</button>
+              <a href="https://github.com/openmedq/openmedq" target="_blank" rel="noopener noreferrer" className="text-xs text-clay-muted hover:text-clay-ink transition-colors">GitHub Repository</a>
             </div>
 
-            <div className="text-left flex flex-col gap-3">
-              <span className="text-xs font-bold uppercase tracking-wider text-clay-ink">Legal</span>
-              <a href="#" className="text-xs text-clay-muted hover:text-clay-ink transition-colors">Terms of Use</a>
-              <a href="#" className="text-xs text-clay-muted hover:text-clay-ink transition-colors">Privacy Policy</a>
-            </div>
+            <div className="flex flex-col gap-3">
+               <span className="text-xs font-bold uppercase tracking-wider text-clay-ink">Legal</span>
+               <button onClick={onViewTerms} className="text-xs text-clay-muted hover:text-clay-ink transition-colors text-left bg-transparent border-0 p-0 cursor-pointer">Terms & Conditions</button>
+               <button onClick={onViewPrivacy} className="text-xs text-clay-muted hover:text-clay-ink transition-colors text-left bg-transparent border-0 p-0 cursor-pointer">Privacy Policy</button>
+               <button onClick={onViewDisclaimer} className="text-xs text-clay-muted hover:text-clay-ink transition-colors text-left bg-transparent border-0 p-0 cursor-pointer">Legal Disclaimer</button>
+               <button onClick={onViewDMCA} className="text-xs text-clay-muted hover:text-clay-ink transition-colors text-left bg-transparent border-0 p-0 cursor-pointer">DMCA & Copyright</button>
+             </div>
           </div>
 
         </div>
@@ -962,14 +1367,14 @@ export function LandingPage({ onStartPractice, onSignIn }: { onStartPractice: ()
           
           <div className="text-left">
             <span>© {new Date().getFullYear()} OpenMedQ. Code licensed under </span>
-            <a href="https://github.com" target="_blank" rel="noopener noreferrer" className="hover:text-clay-pink underline">MIT</a>
+            <a href="https://github.com/openmedq/openmedq" target="_blank" rel="noopener noreferrer" className="hover:text-clay-pink underline">MIT</a>
             <span>. Content under </span>
             <a href="https://creativecommons.org/licenses/by-sa/4.0/" target="_blank" rel="noopener noreferrer" className="hover:text-clay-pink underline">CC-BY-SA 4.0</a>
             <span>.</span>
           </div>
 
           <div className="flex gap-4">
-            <a href="https://github.com" target="_blank" rel="noopener noreferrer" className="hover:text-clay-pink transition-colors">GitHub</a>
+            <a href="https://github.com/openmedq/openmedq" target="_blank" rel="noopener noreferrer" className="hover:text-clay-pink transition-colors">GitHub</a>
             <span>•</span>
             <a href="#" className="hover:text-clay-pink transition-colors">Status</a>
           </div>

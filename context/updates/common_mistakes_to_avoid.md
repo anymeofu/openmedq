@@ -65,3 +65,23 @@ To prevent repeating code defects and build warnings/errors, adhere to the follo
 * **Mistake**: Merging local-first monthly Dopa and lifetime XP using strict `updatedAt` Last-Write-Wins (LWW) rules.
 * **Problem**: If the user opens an old device, the startup daily streak check will update the local `updatedAt` to the current time, making it look newer than the remote synced state even though its Dopa/XP value is lower. On sync merge, the newer timestamp will cause the old device's lower Dopa to win, downgrading the user's level and progress.
 * **Fix**: Since Dopa and XP are cumulative metrics that only increase under normal operation, merge them by taking the maximum Dopa and the maximum `updatedAt` timestamp (`Math.max` on both). Double-guard the D1 database using SQLite's `MAX(excluded.dopa, user_monthly_dopa.dopa)` on conflict updates.
+
+### 13. Nested Button Elements in Option Cards
+* **Mistake**: Wrapping a text button (e.g. `<button>` for option selections) inside a card container alongside an image, while keeping the outer card container as a non-clickable `div`.
+* **Problem**: Clicking on the image or the card's padding does not trigger the button's `onClick` handler, making portions of the card unresponsive. Conversely, nesting `<button>` inside `<button>` is invalid HTML and causes event bubbling and click propagation bugs.
+* **Fix**: Convert the outer card container to a single, disabled-state-aware `<button>` element, and render the inner label, badge, and illustration image as nested `div` or `span` components. This ensures the entire card remains fully clickable.
+
+### 14. Invisible Social Icons in Clerk Dark Mode
+* **Mistake**: Styling Clerk's custom social buttons container background to pure black (`#000000`) in dark mode without adding a visual filter override for provider logos (such as Apple).
+* **Problem**: The Apple logo is rendered as a static black SVG inside an `<img>` tag. When the social login button background is pure black, the black logo becomes completely invisible.
+* **Fix**: Target the stable Clerk provider icon selector (`.cl-socialButtonsProviderIcon__apple`) and apply `filter: brightness(0) invert(1) !important` in dark mode to invert the black logo to white.
+
+### 15. Overridden Social Button Label Color in Clerk Dark Mode
+* **Mistake**: Setting the text color utility class (e.g., `text-clay-ink`) on the outer social button element (`socialButtonsBlockButton`) but failing to target the inner text span (`socialButtonsBlockButtonText`).
+* **Problem**: Clerk's default stylesheet applies a dark grey/black color directly to `.cl-socialButtonsBlockButtonText` with high specificity, overriding the inherited text color and making the "Continue with..." text labels invisible in dark mode.
+* **Fix**: Apply the `text-clay-ink` class directly to the `socialButtonsBlockButtonText` key inside the Clerk appearance configuration, and add a `.dark .cl-socialButtonsBlockButtonText { color: var(--clay-ink) !important; }` rule in `index.css` to enforce high-contrast visibility.
+
+### 16. Rate Limiter Map Iteration CPU Overhead inside Workers
+* **Mistake**: Iterating over a global `Map` of IP entries on every incoming request when the map exceeds a size limit (lazy cleanup).
+* **Problem**: Under a large scraping sweep or distributed attack with thousands of unique IPs, the map remains larger than the limit, causing the Worker to iterate through the entire map on every single request. On Cloudflare's free tier, this consumes CPU cycles and triggers the strict 10ms CPU time limit, blocking legitimate users with 500 errors.
+* **Fix**: Throttle the cleanup loop to run at most once every 10 seconds, and add a hard limit (e.g. 2000 entries) where the entire map is cleared in O(1) time if it grows too large. This protects Worker isolates from memory leaks and CPU timeouts.

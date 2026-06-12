@@ -431,3 +431,124 @@ dialog.lightbox-dialog[open]::backdrop {
   }
 }
 
+/* --- Micro-Animations & Custom Transitions for Dashboard --- */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes drawPath {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes barGrow {
+  from {
+    transform: scaleY(0);
+  }
+  to {
+    transform: scaleY(1);
+  }
+}
+
+@keyframes ambientDrift {
+  0%, 100% {
+    transform: translate(0, 0) scale(1);
+  }
+  50% {
+    transform: translate(4%, 6%) scale(1.1);
+  }
+}
+
+.animate-ambient-drift {
+  animation: ambientDrift 20s ease-in-out infinite;
+}
+
+.animate-fade-in-up {
+  animation: fadeInUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.3s ease-out both;
+}
+
+/* Card hover animation */
+.hover-clay-card {
+  transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.1), border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.hover-clay-card:hover {
+  transform: translateY(-4px) scale(1.01);
+  box-shadow: 0 12px 24px rgba(10, 10, 10, 0.05);
+}
+
+/* Stagger delay utilities */
+.delay-75 { animation-delay: 75ms; }
+.delay-100 { animation-delay: 100ms; }
+.delay-150 { animation-delay: 150ms; }
+.delay-200 { animation-delay: 200ms; }
+.delay-250 { animation-delay: 250ms; }
+.delay-300 { animation-delay: 300ms; }
+.delay-350 { animation-delay: 350ms; }
+.delay-400 { animation-delay: 400ms; }
+.delay-500 { animation-delay: 500ms; }
+
+/* SVG Animation utilities */
+.animate-draw {
+  stroke-dasharray: 1000;
+  stroke-dashoffset: 1000;
+  animation: drawPath 1.5s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+.animate-grow-y {
+  transform-origin: bottom;
+  animation: barGrow 0.8s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+/* Scroll Reveal and Journey Line Styles */
+.reveal-on-scroll {
+  opacity: 0;
+  transform: translateY(20px) scale(0.98);
+  transition: opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1), transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.reveal-on-scroll.reveal-visible {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+}
+
+/* Hide Clerk Branding */
+.cl-internal-180g7wz,
+.cl-internal-w583pr,
+.cl-footer a[href*="clerk.com"],
+.cl-footer [class*="internal"] {
+  display: none !important;
+}
+
+/* Invert Apple logo in dark mode for visibility */
+.dark .cl-socialButtonsProviderIcon__apple {
+  filter: brightness(0) invert(1) !important;
+}
+
+/* Ensure social button text inherits correct ink color in dark mode */
+.dark .cl-socialButtonsBlockButtonText {
+  color: var(--clay-ink) !important;
+}
+
+

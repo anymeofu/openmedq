@@ -8,7 +8,8 @@ import {
   ScrollView, 
   Alert, 
   Switch, 
-  ActivityIndicator 
+  ActivityIndicator,
+  Linking
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -18,7 +19,8 @@ import {
   User, 
   Settings, 
   Trash2, 
-  Database
+  Database,
+  FileText
 } from 'lucide-react-native';
 import { triggerHaptic } from '@/lib/haptics';
 
@@ -84,18 +86,44 @@ export default function ProfileScreen() {
   const handleDisconnect = async () => {
     Alert.alert(
       'Sign Out',
-      'Are you sure you want to sign out? Your progress will remain saved on this device.',
+      'Are you sure you want to sign out? This will clear your study history from this device, but it remains safe in your cloud backup.',
       [
         {
           text: 'Sign Out',
           style: 'destructive',
           onPress: async () => {
+            try {
+              const sqlite = await getDB();
+              await sqlite.execAsync('BEGIN TRANSACTION;');
+              try {
+                await sqlite.runAsync('DELETE FROM progress;');
+                await sqlite.runAsync('DELETE FROM reviewLogs;');
+                await sqlite.runAsync('DELETE FROM userStats;');
+                await sqlite.execAsync('COMMIT;');
+              } catch (dbErr) {
+                await sqlite.execAsync('ROLLBACK;');
+                console.error('Failed to clear SQLite tables on signout:', dbErr);
+              }
+              await AsyncStorage.removeItem('openmedq_last_sync_timestamp');
+            } catch (err) {
+              console.warn('Sign-out cleanup failed:', err);
+            }
             await signOut();
           }
         },
         { text: 'Cancel', style: 'cancel' }
       ]
     );
+  };
+
+  // Open URL with error handling
+  const handleOpenURL = async (url: string) => {
+    try {
+      await Linking.openURL(url);
+    } catch (err) {
+      console.error(`Failed to open URL: ${url}`, err);
+      Alert.alert('Error', 'Unable to open the link. Please check your browser or network connection.');
+    }
   };
 
   // Save FSRS parameters
@@ -424,6 +452,59 @@ export default function ProfileScreen() {
           <Text style={[styles.dangerButtonText, { color: theme.error }]}>Reset Local Database</Text>
         </Pressable>
       </View>
+      {/* Legal & Disclaimers */}
+      <View style={[styles.card, { backgroundColor: theme.backgroundElement, borderColor: theme.hairline }]}>
+        <View style={styles.cardHeader}>
+          <FileText size={20} color={theme.pink} />
+          <Text style={[styles.cardTitle, { color: theme.text }]}>Legal & Disclaimers</Text>
+        </View>
+
+        <Text style={[styles.instructionText, { color: theme.textSecondary }]}>
+          Review clinical disclaimers, copyright policies, and terms of service.
+        </Text>
+
+        <View style={styles.legalButtonsContainer}>
+          <Pressable 
+            onPress={() => {
+              triggerHaptic();
+              handleOpenURL('https://openmedq.com/#disclaimer');
+            }}
+            style={({ pressed }) => [styles.legalLink, { opacity: pressed ? 0.7 : 1 }]}
+          >
+            <Text style={[styles.legalLinkText, { color: theme.pink }]}>Medical & Legal Disclaimer</Text>
+          </Pressable>
+
+          <Pressable 
+            onPress={() => {
+              triggerHaptic();
+              handleOpenURL('https://openmedq.com/#privacy');
+            }}
+            style={({ pressed }) => [styles.legalLink, { opacity: pressed ? 0.7 : 1 }]}
+          >
+            <Text style={[styles.legalLinkText, { color: theme.pink }]}>Privacy Policy</Text>
+          </Pressable>
+
+          <Pressable 
+            onPress={() => {
+              triggerHaptic();
+              handleOpenURL('https://openmedq.com/#terms');
+            }}
+            style={({ pressed }) => [styles.legalLink, { opacity: pressed ? 0.7 : 1 }]}
+          >
+            <Text style={[styles.legalLinkText, { color: theme.pink }]}>Terms & Conditions</Text>
+          </Pressable>
+
+          <Pressable 
+            onPress={() => {
+              triggerHaptic();
+              handleOpenURL('https://openmedq.com/#dmca');
+            }}
+            style={({ pressed }) => [styles.legalLink, { opacity: pressed ? 0.7 : 1 }]}
+          >
+            <Text style={[styles.legalLinkText, { color: theme.pink }]}>DMCA & Copyright Policy</Text>
+          </Pressable>
+        </View>
+      </View>
     </ScrollView>
   );
 }
@@ -560,6 +641,19 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   dangerButtonText: {
+    fontSize: 13,
+    fontWeight: 'bold',
+  },
+  legalButtonsContainer: {
+    marginTop: 4,
+    gap: 4,
+  },
+  legalLink: {
+    paddingVertical: 10,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: 'rgba(0,0,0,0.06)',
+  },
+  legalLinkText: {
     fontSize: 13,
     fontWeight: 'bold',
   },

@@ -55,5 +55,8 @@ This directory logs updates, deprecated patterns, and common mistakes encountere
 * [pyq_configuration_consolidation.md](file:///Users/sain/development/openmedq/context/updates/pyq_configuration_consolidation.md):
   * **Category**: Common mistakes to avoid / Architecture standards.
   * **Description**: Standards for centralizing virtual subjects, PYQ paper lists, and question counts in the shared library to avoid duplication in web and mobile codebases.
+* [logo_theme_and_asset_optimization_standards.md](file:///Users/sain/development/openmedq/context/updates/logo_theme_and_asset_optimization_standards.md):
+  * **Category**: New info learned via development / Architecture standards.
+  * **Description**: Standards for logo downsampling size reduction, dynamic theme-based swapping, and conforming startup animated icons to solid layouts.
 
 

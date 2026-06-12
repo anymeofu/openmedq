@@ -72,6 +72,8 @@ export function Dashboard({
   const [showSettingsModal, setShowSettingsModal] = useState<boolean>(false);
   const [activeSyllabusSubjectId, setActiveSyllabusSubjectId] = useState<number | null>(null);
   const [activeSession, setActiveSession] = useState<any>(null);
+  const [searchQuery, setSearchQuery] = useState<string>('');
+  const [selectedPhase, setSelectedPhase] = useState<string>('ALL');
 
   const currentMonth = getCurrentMonthStr();
   const userStats = useLiveQuery(() => db.userStats.get(currentMonth), [currentMonth]);
@@ -245,6 +247,30 @@ export function Dashboard({
     });
   };
 
+  const filterPhaseMap: Record<string, string> = {
+    '1st Year': 'First Year (Pre-Clinical)',
+    '2nd & 3rd Year': 'Second & Third Year (Para-Clinical)',
+    'Short Subjects': 'Short Subjects & Specialties',
+    'Final Year': 'Final Year (Core Clinicals)',
+    'Exam Archives': 'Official Exam Archives'
+  };
+
+  const filteredPhases = MBBS_PHASES.map(phase => {
+    const phaseSubjects = allSubjectsList
+      .filter(s => phase.subjectIds.includes(s.id))
+      .filter(s => s.name.toLowerCase().includes(searchQuery.toLowerCase()));
+
+    return {
+      ...phase,
+      subjects: phaseSubjects
+    };
+  }).filter(phase => {
+    if (selectedPhase !== 'ALL' && phase.name !== filterPhaseMap[selectedPhase]) {
+      return false;
+    }
+    return phase.subjects.length > 0;
+  });
+
   return (
     <div className="min-h-screen bg-clay-canvas text-clay-ink flex flex-col font-sans relative selection:bg-clay-pink/20">
       {/* Header bar */}
@@ -372,7 +398,7 @@ export function Dashboard({
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             
             {/* Dopa XP & Level Bento Card (Gold/Ochre theme) */}
-            <div className="bg-clay-ochre text-clay-ink rounded-clay-xl border border-clay-hairline p-6 md:col-span-3 flex flex-col md:flex-row items-center justify-between gap-6 transition-all duration-300">
+            <div className="bg-clay-ochre text-clay-ink rounded-clay-xl border border-clay-hairline p-6 md:col-span-3 flex flex-col md:flex-row items-center justify-between gap-6 transition-all duration-300 animate-fade-in-up delay-75 hover-clay-card">
               <div className="flex items-center gap-4 flex-1 w-full text-left">
                 {/* Level Badge Illustration */}
                 <div className="relative shrink-0 bg-white/40 border border-white/20 p-3 rounded-clay-lg flex items-center justify-center shadow-inner">
@@ -421,6 +447,9 @@ export function Dashboard({
                       <p className="text-[10px] text-clay-muted mt-1 font-medium">You reached Level 6 Prodigy! Total: {monthlyDopa} Dopa</p>
                     </div>
                   )}
+                  <p className="text-[9px] text-clay-muted/70 font-semibold mt-2 leading-tight">
+                    * Dopa study points are awarded for solving questions and keeping daily study habits active.
+                  </p>
                 </div>
               </div>
 
@@ -448,7 +477,7 @@ export function Dashboard({
 
             {/* Active Session Resume Bento Card */}
             {activeSession && (
-              <div className="bg-clay-surface-soft border border-clay-ochre rounded-clay-xl p-6 flex flex-col md:flex-row md:items-center justify-between gap-6 md:col-span-3 transition-all duration-300">
+              <div className="bg-clay-surface-soft border border-clay-ochre rounded-clay-xl p-6 flex flex-col md:flex-row md:items-center justify-between gap-6 md:col-span-3 transition-all duration-300 animate-fade-in-up delay-100 hover-clay-card">
                 <div className="flex-1 text-left">
                   <div className="flex items-center gap-2 mb-1">
                     <span className="text-[10px] font-bold bg-clay-ochre text-clay-ink uppercase tracking-wider px-2 py-0.5 rounded">
@@ -463,7 +492,7 @@ export function Dashboard({
                   </h3>
                   <p className="text-clay-body text-xs leading-relaxed">
                     You have an unfinished session with {activeSession.questions?.length || 0} questions ({Object.keys(activeSession.firstAttempts || {}).length} answered). 
-                    Status: <span className="font-semibold text-clay-pink">{activeSession.config?.status === 'SPACED_REPETITION' ? 'Spaced Repetition' : 'Custom Timed Module'}</span>
+                    Status: <span className="font-semibold text-clay-pink">{activeSession.config?.status === 'SPACED_REPETITION' ? 'Adaptive Spaced Review' : 'Custom Practice Test'}</span>
                   </p>
                 </div>
                 <div className="flex gap-3 shrink-0">
@@ -485,7 +514,7 @@ export function Dashboard({
             )}
 
             {/* Card 1: Today's Study Goal (Pink, White text) - 2 columns width */}
-            <div className="bg-clay-pink text-white rounded-clay-xl border border-transparent p-6 flex flex-col justify-between min-h-[220px] md:col-span-2">
+            <div className="bg-clay-pink text-white rounded-clay-xl border border-transparent p-6 flex flex-col justify-between min-h-[220px] md:col-span-2 animate-fade-in-up delay-150 hover-clay-card">
               <div>
                 <span className="text-[10px] font-bold text-white/80 uppercase tracking-wider block mb-1">
                   Today's Study Goal
@@ -528,7 +557,7 @@ export function Dashboard({
             </div>
 
             {/* Card 2: Revision Queue (Lavender, Dark text) - 1 column width */}
-            <div className="bg-clay-lavender text-clay-ink rounded-clay-xl border border-clay-hairline p-6 flex flex-col justify-between min-h-[220px]">
+            <div className="bg-clay-lavender text-clay-ink rounded-clay-xl border border-clay-hairline p-6 flex flex-col justify-between min-h-[220px] animate-fade-in-up delay-200 hover-clay-card">
               <div className="flex justify-between items-start">
                 <div>
                   <span className="text-[10px] font-bold text-clay-muted uppercase tracking-wider block mb-1">
@@ -549,7 +578,7 @@ export function Dashboard({
 
               <div className="space-y-2 my-3 text-xs text-clay-body">
                 <div className="flex justify-between items-center bg-white/40 border border-clay-hairline p-2 rounded-clay-md">
-                  <span className="font-semibold text-clay-pink">Ready to Revise:</span>
+                  <span className="font-semibold text-clay-pink">Ready to Review:</span>
                   <span className="font-bold text-clay-pink">{dueCount} questions</span>
                 </div>
                 <div className="flex justify-between items-center bg-white/40 border border-clay-hairline p-1.5 rounded-clay-md text-[11px]">
@@ -568,7 +597,7 @@ export function Dashboard({
                   disabled={dueCount === 0}
                   className="w-full bg-clay-ink hover:bg-neutral-800 disabled:opacity-45 disabled:hover:bg-clay-ink text-white text-xs font-bold py-2 rounded-clay-md transition-all duration-200 cursor-pointer flex justify-center items-center gap-1"
                 >
-                  <span>Start Revision ({dueCount})</span>
+                  <span>Start Spaced Review ({dueCount})</span>
                 </button>
                 <div className="grid grid-cols-2 gap-1.5">
                   <button
@@ -590,7 +619,7 @@ export function Dashboard({
             </div>
 
             {/* Card 3: Custom Practice Test (Mint, Dark text) - 2 columns width */}
-            <div className="bg-clay-mint text-clay-ink rounded-clay-xl border border-clay-hairline p-6 flex flex-col justify-between min-h-[220px] md:col-span-2">
+            <div className="bg-clay-mint text-clay-ink rounded-clay-xl border border-clay-hairline p-6 flex flex-col justify-between min-h-[220px] md:col-span-2 animate-fade-in-up delay-250 hover-clay-card">
               <div className="flex justify-between items-start">
                 <div>
                   <span className="text-[10px] font-bold text-clay-muted uppercase tracking-wider block mb-1">
@@ -619,7 +648,7 @@ export function Dashboard({
             </div>
 
             {/* Card 4: Success Rate (Peach, Dark text) - 1 column width */}
-            <div className="bg-clay-peach text-clay-ink rounded-clay-xl border border-clay-hairline p-6 flex flex-col justify-between min-h-[220px]">
+            <div className="bg-clay-peach text-clay-ink rounded-clay-xl border border-clay-hairline p-6 flex flex-col justify-between min-h-[220px] animate-fade-in-up delay-300 hover-clay-card">
               <div>
                 <span className="text-[10px] font-bold text-clay-muted uppercase tracking-wider block mb-1">
                   Overall Progress
@@ -670,13 +699,49 @@ export function Dashboard({
             </button>
           </div>
 
+          {/* Search and Filter Tabs */}
+          <div className="mb-6 flex flex-col md:flex-row gap-4 items-center justify-between">
+            {/* Search Input */}
+            <div className="relative w-full md:w-80">
+              <input
+                type="text"
+                placeholder="Search subjects (e.g. Pathology)..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full bg-clay-canvas text-clay-ink text-xs rounded-clay-md px-4 py-2.5 h-11 border border-clay-hairline focus:border-clay-ink focus:outline-none transition-colors"
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery('')}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-clay-muted hover:text-clay-ink text-xs font-bold"
+                >
+                  Clear
+                </button>
+              )}
+            </div>
+
+            {/* Filter Tabs */}
+            <div className="flex overflow-x-auto gap-1 pb-1 w-full md:w-auto scrollbar-none">
+              {(['ALL', '1st Year', '2nd & 3rd Year', 'Short Subjects', 'Final Year', 'Exam Archives'] as const).map((tab) => (
+                <button
+                  key={tab}
+                  onClick={() => setSelectedPhase(tab)}
+                  className={`px-3 py-1.5 text-xs font-bold rounded-clay-pill transition-all cursor-pointer whitespace-nowrap ${
+                    selectedPhase === tab
+                      ? 'bg-clay-surface-card text-clay-ink border border-clay-hairline shadow-sm font-semibold'
+                      : 'text-clay-muted hover:text-clay-ink hover:bg-clay-surface-soft border border-transparent'
+                  }`}
+                >
+                  {tab}
+                </button>
+              ))}
+            </div>
+          </div>
+
           <div className="space-y-10">
-            {MBBS_PHASES.map((phase) => {
-              // Get subjects matching this phase
-              const phaseSubjects = allSubjectsList.filter((s) => phase.subjectIds.includes(s.id));
-              
-              return (
-                <div key={phase.name} className="space-y-4">
+            {filteredPhases.length > 0 ? (
+              filteredPhases.map((phase, phaseIdx) => (
+                <div key={phase.name} className="space-y-4 animate-fade-in-up" style={{ animationDelay: `${phaseIdx * 50}ms` }}>
                   <div className="text-left">
                     <h3 className="text-xs uppercase font-bold text-clay-muted tracking-wider">
                       {phase.name}
@@ -687,14 +752,15 @@ export function Dashboard({
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-                    {phaseSubjects.map((subject) => {
+                    {phase.subjects.map((subject, subIdx) => {
                       const solved = subjectSolved[subject.id] || 0;
                       const pct = Math.min(100, Math.round((solved / subject.count) * 100));
                       
                       return (
                         <div
                           key={subject.id}
-                          className="bg-clay-canvas border border-clay-hairline rounded-clay-lg p-5 flex flex-col justify-between hover:border-clay-muted transition-all duration-300 group"
+                          className="bg-clay-canvas border border-clay-hairline rounded-clay-lg p-5 flex flex-col justify-between hover-clay-card transition-all duration-300 group animate-fade-in-up"
+                          style={{ animationDelay: `${subIdx * 30}ms` }}
                         >
                           <div>
                             <div className="flex justify-between items-start gap-2 mb-2">
@@ -744,8 +810,21 @@ export function Dashboard({
                     })}
                   </div>
                 </div>
-              );
-            })}
+              ))
+            ) : (
+              <div className="text-center py-12 bg-clay-surface-soft border border-clay-hairline rounded-clay-xl animate-fade-in">
+                <p className="text-sm font-bold text-clay-muted">No subjects match your search or filter criteria.</p>
+                <button
+                  onClick={() => {
+                    setSearchQuery('');
+                    setSelectedPhase('ALL');
+                  }}
+                  className="mt-3 text-xs font-bold text-clay-pink hover:underline cursor-pointer"
+                >
+                  Clear Filters
+                </button>
+              </div>
+            )}
           </div>
         </div>
 

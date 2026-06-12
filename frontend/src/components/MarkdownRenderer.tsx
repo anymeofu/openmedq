@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import { marked } from 'marked';
+import DOMPurify from 'dompurify';
 
 interface MarkdownRendererProps {
   content: string;
@@ -25,13 +26,16 @@ export function MarkdownRenderer({ content, inline = false }: MarkdownRendererPr
 
       // Parse markdown to HTML using marked
       let html = marked.parse(processed, { async: false }) as string;
+      
+      // Sanitize parsed HTML using DOMPurify to prevent XSS
+      const cleanHtml = DOMPurify.sanitize(html);
 
       if (inline) {
         // Strip wrapping paragraph tags if inline
-        html = html.replace(/^<p>/i, '').replace(/<\/p>\s*$/i, '');
+        return cleanHtml.replace(/^<p>/i, '').replace(/<\/p>\s*$/i, '');
       }
 
-      return html;
+      return cleanHtml;
     } catch (e) {
       console.error('Error parsing markdown:', e);
       return content;

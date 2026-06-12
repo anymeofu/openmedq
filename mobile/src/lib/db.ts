@@ -155,6 +155,16 @@ export async function initDatabase() {
     // Index may already exist
   }
   
+  // Add indices to optimize local question querying and spaced repetition
+  try {
+    await db.execAsync('CREATE INDEX IF NOT EXISTS idx_questions_subjectId ON questions(subjectId);');
+    await db.execAsync('CREATE INDEX IF NOT EXISTS idx_questions_topicId ON questions(topicId);');
+    await db.execAsync('CREATE INDEX IF NOT EXISTS idx_questions_exam ON questions(examType, examYear);');
+    await db.execAsync('CREATE INDEX IF NOT EXISTS idx_progress_due ON progress(due);');
+  } catch (err) {
+    console.warn('Failed to create SQLite indices:', err);
+  }
+  
   // Migration for previousStatus column
   try {
     await db.execAsync('ALTER TABLE progress ADD COLUMN previousStatus TEXT;');

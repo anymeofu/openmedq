@@ -2,29 +2,64 @@ import { Hono } from 'hono';
 import { clerkMiddleware, getAuth } from '@clerk/hono';
 import { cors } from 'hono/cors';
 import { drizzle } from 'drizzle-orm/d1';
-import { eq, and, desc, sql, asc } from 'drizzle-orm';
+import { eq, and, desc, sql, asc, or, gt, lt } from 'drizzle-orm';
 import * as schema from './db/schema';
 import { cache } from 'hono/cache';
+import { z } from 'zod';
 
 type Bindings = {
   DB: D1Database;
   BUCKET: R2Bucket;
   CLERK_PUBLISHABLE_KEY: string;
   CLERK_SECRET_KEY: string;
+  CDN_URL?: string;
 };
 
 const app = new Hono<{ Bindings: Bindings }>();
 
+// Simple in-memory rate limiter per Worker instance (sliding window with lazy cleanup)
+const rateLimitMap = new Map<string, { count: number; resetTime: number }>();
+let lastCleanupTime = 0;
+
+const rateLimiter = (limit: number, windowMs: number) => {
+  return async (c: any, next: any) => {
+    const now = Date.now();
+
+    // Lazy cleanup to prevent memory growth, throttled to at most once per 10s to conserve CPU
+    if (rateLimitMap.size > 1000 && now - lastCleanupTime > 10000) {
+      lastCleanupTime = now;
+      for (const [k, v] of rateLimitMap.entries()) {
+        if (now > v.resetTime) {
+          rateLimitMap.delete(k);
+        }
+      }
+      // If the map is still excessively large (e.g. under a distributed attack), clear all to protect worker memory
+      if (rateLimitMap.size > 2000) {
+        rateLimitMap.clear();
+      }
+    }
+
+    const ip = c.req.header('CF-Connecting-IP') || 'global';
+    const clientLimit = rateLimitMap.get(ip);
+
+    if (!clientLimit || now > clientLimit.resetTime) {
+      rateLimitMap.set(ip, {
+        count: 1,
+        resetTime: now + windowMs,
+      });
+    } else {
+      clientLimit.count++;
+      if (clientLimit.count > limit) {
+        c.header('Retry-After', Math.ceil((clientLimit.resetTime - now) / 1000).toString());
+        return c.json({ success: false, error: 'Too many requests. Please try again later.' }, 429);
+      }
+    }
+    await next();
+  };
+};
+
 // Global in-memory cache for parsed R2 subject question packs
 const subjectPackCache = new Map<number, any[]>();
-
-// Global in-memory cache for leaderboard monthly lists
-interface CachedLeaderboard {
-  leaderboard: any[];
-  totalParticipants: number;
-  expiresAt: number;
-}
-const leaderboardCache = new Map<string, CachedLeaderboard>();
 
 function shuffleArray<T>(arr: T[]): T[] {
   const newArr = [...arr];
@@ -37,19 +72,119 @@ function shuffleArray<T>(arr: T[]): T[] {
   return newArr;
 }
 
+const ALLOWED_ORIGINS = [
+  'https://openmedq.com',
+  'https://www.openmedq.com',
+  'https://openmedq.pages.dev',
+];
+
+// Startup / Environment Bindings validation middleware
+app.use('*', async (c, next) => {
+  if (!c.env.CLERK_SECRET_KEY || !c.env.CLERK_PUBLISHABLE_KEY || !c.env.DB || !c.env.BUCKET) {
+    console.error('Critical environment bindings are missing');
+    return c.json({ success: false, error: 'Internal Configuration Error: Missing bindings' }, 500);
+  }
+  await next();
+});
+
 // Apply CORS middleware globally (must run before auth to handle OPTIONS preflights correctly)
-app.use('*', cors({
-  origin: (origin) => origin || '*',
-  allowHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
-  allowMethods: ['POST', 'GET', 'OPTIONS', 'PUT', 'DELETE'],
-  exposeHeaders: ['Content-Length'],
-  maxAge: 600,
-  credentials: true,
-}));
+app.use('*', async (c, next) => {
+  const isDev = c.env.CLERK_PUBLISHABLE_KEY?.includes('_test_') || !c.env.CLERK_SECRET_KEY?.startsWith('sk_live');
+  const corsHandler = cors({
+    origin: (origin) => {
+      if (!origin) return ALLOWED_ORIGINS[0];
+      if (
+        ALLOWED_ORIGINS.includes(origin) ||
+        origin.endsWith('.openmedq.pages.dev') ||
+        (isDev && (origin.startsWith('http://localhost:') || origin.startsWith('http://127.0.0.1:')))
+      ) {
+        return origin;
+      }
+      return ALLOWED_ORIGINS[0];
+    },
+    allowHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+    allowMethods: ['POST', 'GET', 'OPTIONS', 'PUT', 'DELETE'],
+    exposeHeaders: ['Content-Length'],
+    maxAge: 600,
+    credentials: true,
+  });
+  return corsHandler(c, next);
+});
+
+// Apply Rate Limiting globally to all API routes (120 requests per minute)
+app.use('/api/*', rateLimiter(120, 60 * 1000));
 
 // Apply Clerk middleware globally
 app.use('*', clerkMiddleware());
 
+// Input validation schemas
+const progressSyncSchema = z.object({
+  incorrectIds: z.array(z.number()).optional(),
+  bookmarkedIds: z.array(z.number()).optional(),
+  progressData: z.string().optional(),
+  gamification: z.object({
+    streakDays: z.number().int().nonnegative().optional(),
+    lastActiveDate: z.string().nullable().optional(),
+    lifetimeDopa: z.number().int().nonnegative().optional(),
+    monthlyDopaList: z.array(z.object({
+      month: z.string().regex(/^\d{4}-\d{2}$/),
+      dopa: z.number().int().nonnegative(),
+      updatedAt: z.number().int().nonnegative().optional()
+    })).optional()
+  }).optional(),
+  profile: z.object({
+    displayName: z.string().max(100).optional(),
+    email: z.string().email().optional()
+  }).optional()
+});
+
+const customPracticeSchema = z.object({
+  subjectIds: z.array(z.union([z.number(), z.string()])).optional(),
+  topicIds: z.array(z.union([z.number(), z.string()])).optional(),
+  status: z.enum(['UNATTEMPTED', 'INCORRECT', 'CORRECT', 'BOOKMARKED', 'SPACED_REPETITION', 'LEECHES', 'ALL']).optional(),
+  limit: z.number().int().positive().optional(),
+  newCardsLimit: z.number().int().nonnegative().optional()
+});
+
+const questionPackQuerySchema = z.object({
+  subjectId: z.string().regex(/^\d+$/).transform(Number),
+  topicId: z.string().regex(/^\d+$/).transform(Number).optional(),
+  examType: z.string().optional(),
+  year: z.string().regex(/^\d+$/).transform(Number).optional(),
+  isPYQ: z.preprocess((val) => val === 'true', z.boolean()).optional(),
+  limit: z.string().regex(/^\d+$/).optional().transform(val => val !== undefined ? Number(val) : undefined).pipe(z.number().default(50)).transform(val => Math.min(val, 100))
+});
+
+const subjectPackQuerySchema = z.object({
+  subjectId: z.string().regex(/^\d+$/).transform(Number)
+});
+
+const leaderboardQuerySchema = z.object({
+  month: z.string().regex(/^\d{4}-\d{2}$/).optional()
+});
+
+// Central authorization middleware (Secure by Default / Default-Deny)
+const PUBLIC_ROUTES = [
+  '/',
+  '/api/questions/pack',
+  '/api/questions/subject-pack',
+  '/api/leaderboard'
+];
+
+app.use('/api/*', async (c, next) => {
+  const path = c.req.path;
+  // Whitelist exact matches or public assets prefixes
+  const isPublic = PUBLIC_ROUTES.includes(path) || path.startsWith('/api/assets/');
+  if (isPublic) {
+    return next();
+  }
+
+  const auth = getAuth(c);
+  if (!auth || !auth.userId) {
+    return c.json({ success: false, error: 'Unauthorized: Authentication required' }, 401);
+  }
+  await next();
+});
 
 // Base Health Check
 const routes = app.get('/', (c) => {
@@ -65,16 +200,11 @@ const routes = app.get('/', (c) => {
   cacheName: 'openmedq-packs',
   cacheControl: 'public, max-age=31536000, s-maxage=31536000, immutable',
 }), async (c) => {
-  const subjectId = c.req.query('subjectId');
-  const topicId = c.req.query('topicId');
-  const examType = c.req.query('examType');
-  const year = c.req.query('year');
-  const isPYQ = c.req.query('isPYQ') === 'true';
-  const limit = parseInt(c.req.query('limit') || '50', 10);
-
-  if (!subjectId) {
-    return c.json({ success: false, error: 'subjectId is required' }, 400);
+  const parsed = questionPackQuerySchema.safeParse(c.req.query());
+  if (!parsed.success) {
+    return c.json({ success: false, error: 'Invalid query parameters', details: parsed.error.issues }, 400);
   }
+  const { subjectId, topicId, examType, year, isPYQ, limit } = parsed.data;
 
   try {
     let packText = '';
@@ -113,8 +243,7 @@ const routes = app.get('/', (c) => {
     }
 
     if (year) {
-      const yearInt = parseInt(year, 10);
-      questions = questions.filter((q: any) => q.examYear === yearInt);
+      questions = questions.filter((q: any) => q.examYear === year);
     }
 
     if (isPYQ) {
@@ -148,10 +277,11 @@ const routes = app.get('/', (c) => {
   cacheName: 'openmedq-subject-packs',
   cacheControl: 'public, max-age=31536000, s-maxage=31536000, immutable',
 }), async (c) => {
-  const subjectId = c.req.query('subjectId');
-  if (!subjectId) {
-    return c.json({ success: false, error: 'subjectId is required' }, 400);
+  const parsed = subjectPackQuerySchema.safeParse(c.req.query());
+  if (!parsed.success) {
+    return c.json({ success: false, error: 'Invalid query parameters', details: parsed.error.issues }, 400);
   }
+  const { subjectId } = parsed.data;
 
   try {
     const key = `packs/subject_${subjectId}.json`;
@@ -186,11 +316,7 @@ const routes = app.get('/', (c) => {
   .get('/api/progress/sync', async (c) => {
   try {
     const auth = getAuth(c);
-    if (!auth || !auth.userId) {
-      return c.json({ success: false, error: 'Unauthorized: User must sign in' }, 401);
-    }
-
-    const userId = auth.userId;
+    const userId = auth!.userId!;
     const since = parseInt(c.req.query('since') || '0', 10);
     const db = drizzle(c.env.DB, { schema });
 
@@ -290,17 +416,17 @@ const routes = app.get('/', (c) => {
   }
 })
 
-// API endpoint to sync user progress (stores progressData as UTF-8 encoded JSON via TextEncoder.encode)
   .post('/api/progress/sync', async (c) => {
   try {
     const auth = getAuth(c);
-    if (!auth || !auth.userId) {
-      return c.json({ success: false, error: 'Unauthorized: User must sign in' }, 401);
-    }
+    const userId = auth!.userId!;
 
     const body = await c.req.json();
-    const { incorrectIds, bookmarkedIds, progressData, gamification, profile } = body;
-    const userId = auth.userId;
+    const parsed = progressSyncSchema.safeParse(body);
+    if (!parsed.success) {
+      return c.json({ success: false, error: 'Invalid progress sync request payload', details: parsed.error.issues }, 400);
+    }
+    const { incorrectIds, bookmarkedIds, progressData, gamification, profile } = parsed.data;
 
     const db = drizzle(c.env.DB, { schema });
 
@@ -443,12 +569,14 @@ const routes = app.get('/', (c) => {
   .post('/api/questions/custom-practice', async (c) => {
   try {
     const auth = getAuth(c);
-    if (!auth || !auth.userId) {
-      return c.json({ success: false, error: 'Unauthorized: User must sign in' }, 401);
-    }
-    const userId = auth.userId;
+    const userId = auth!.userId!;
 
-    const { subjectIds, topicIds, status, limit, newCardsLimit } = await c.req.json();
+    const body = await c.req.json();
+    const parsed = customPracticeSchema.safeParse(body);
+    if (!parsed.success) {
+      return c.json({ success: false, error: 'Invalid custom practice request payload', details: parsed.error.issues }, 400);
+    }
+    const { subjectIds, topicIds, status, limit, newCardsLimit } = parsed.data;
 
     let targetSubjectIds = subjectIds;
     if (!targetSubjectIds || !Array.isArray(targetSubjectIds) || targetSubjectIds.length === 0) {
@@ -522,20 +650,36 @@ const routes = app.get('/', (c) => {
       let subjectQuestions = subjectPackCache.get(subIdNum);
 
       if (!subjectQuestions) {
-        // Fetch from R2 bucket
         const key = `packs/subject_${subIdNum}.json`;
-        const object = await c.env.BUCKET.get(key);
-        if (object) {
-          try {
-            const text = await object.text();
-            const parsed = JSON.parse(text);
-            if (Array.isArray(parsed)) {
-              subjectQuestions = parsed;
-              subjectPackCache.set(subIdNum, parsed);
-            }
-          } catch (err) {
-            console.warn(`Failed to parse pack for subject ${subIdNum}:`, err);
+        let parsed = null;
+
+        // Try CDN first to hit Edge cache and save R2 operations
+        const cdnUrl = c.env.CDN_URL || 'https://assets.openmedq.com';
+        try {
+          const res = await fetch(`${cdnUrl}/${key}`);
+          if (res.ok) {
+            parsed = await res.json();
           }
+        } catch (err) {
+          console.warn(`CDN fetch failed for subject pack ${subIdNum}, falling back to direct R2 binding:`, err);
+        }
+
+        // Fallback to direct R2 bucket read
+        if (!parsed) {
+          const object = await c.env.BUCKET.get(key);
+          if (object) {
+            try {
+              const text = await object.text();
+              parsed = JSON.parse(text);
+            } catch (err) {
+              console.warn(`Failed to parse pack for subject ${subIdNum}:`, err);
+            }
+          }
+        }
+
+        if (Array.isArray(parsed)) {
+          subjectQuestions = parsed;
+          subjectPackCache.set(subIdNum, parsed);
         }
       }
 
@@ -649,14 +793,28 @@ const routes = app.get('/', (c) => {
   try {
     const auth = getAuth(c);
     const userId = auth?.userId;
-    const month = c.req.query('month') || new Date().toISOString().slice(0, 7); // YYYY-MM
+    const parsed = leaderboardQuerySchema.safeParse(c.req.query());
+    if (!parsed.success) {
+      return c.json({ success: false, error: 'Invalid query parameters', details: parsed.error.issues }, 400);
+    }
+    const month = parsed.data.month || new Date().toISOString().slice(0, 7); // YYYY-MM
     const db = drizzle(c.env.DB, { schema });
 
-    const now = Date.now();
-    let cached = leaderboardCache.get(month);
+    const cache = (caches as any).default;
+    const cacheKey = `http://internal/leaderboard/${month}`;
+    let cachedResponse = await cache.match(cacheKey);
+    let cachedData: any = null;
 
-    if (!cached || now > cached.expiresAt) {
-      // Cache miss or expired: query top 50 and total participants in 1 batch
+    if (cachedResponse) {
+      try {
+        cachedData = await cachedResponse.json();
+      } catch (err) {
+        console.warn('Failed to parse cached leaderboard JSON:', err);
+      }
+    }
+
+    if (!cachedData) {
+      // Cache miss: query D1 top 50 and total participants in 1 batch
       const [topUsers, totalResult] = await db.batch([
         db.select({
           id: schema.users.id,
@@ -687,20 +845,27 @@ const routes = app.get('/', (c) => {
         streakDays: item.streakDays,
       }));
 
-      cached = {
+      cachedData = {
         leaderboard: leaderboardList,
         totalParticipants: totalResult[0]?.count || 0,
-        expiresAt: now + 300000 // 5 minutes cache TTL
       };
-      leaderboardCache.set(month, cached);
+
+      // Cache the response for 5 minutes (300 seconds)
+      const cacheResponseObj = new Response(JSON.stringify(cachedData), {
+        headers: {
+          'Content-Type': 'application/json',
+          'Cache-Control': 'public, max-age=300',
+        },
+      });
+      c.executionCtx.waitUntil(cache.put(cacheKey, cacheResponseObj));
     }
 
-    const leaderboard = cached.leaderboard;
-    const totalParticipants = cached.totalParticipants;
+    const leaderboard = cachedData.leaderboard;
+    const totalParticipants = cachedData.totalParticipants;
     let userRankInfo = null;
 
     if (userId) {
-      const isRecordInTop50 = leaderboard.find(l => l.userId === userId);
+      const isRecordInTop50 = leaderboard.find((l: any) => l.userId === userId);
       
       if (!isRecordInTop50) {
         // Query user's monthly stats and details
@@ -741,8 +906,13 @@ const routes = app.get('/', (c) => {
           .where(
             and(
               eq(schema.userMonthlyDopa.month, month),
-              sql`(${schema.userMonthlyDopa.dopa} > ${userDopa}) OR 
-                  (${schema.userMonthlyDopa.dopa} = ${userDopa} AND ${schema.userMonthlyDopa.updatedAt} < ${userUpdatedAt})`
+              or(
+                gt(schema.userMonthlyDopa.dopa, userDopa),
+                and(
+                  eq(schema.userMonthlyDopa.dopa, userDopa),
+                  lt(schema.userMonthlyDopa.updatedAt, userUpdatedAt)
+                )
+              )
             )
           );
 
@@ -788,7 +958,9 @@ const routes = app.get('/', (c) => {
   cacheControl: 'public, max-age=31536000, s-maxage=31536000, immutable',
 }), async (c) => {
   const path = c.req.path.replace(/^\/api\/assets\//, '');
-  if (!path) return c.text('Not Found', 404);
+  if (!path || path.includes('..') || !/^[a-zA-Z0-9_\-\.\/]+$/.test(path)) {
+    return c.text('Not Found', 404);
+  }
 
   try {
     const object = await c.env.BUCKET.get(path);

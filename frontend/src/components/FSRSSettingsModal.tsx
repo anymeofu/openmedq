@@ -142,7 +142,7 @@ export function FSRSSettingsModal({ isOpen, onClose, onSave }: FSRSSettingsModal
           <div className="flex items-center gap-2">
             <Settings className="w-5 h-5 text-clay-pink" />
             <h3 className="font-rubik text-lg font-medium tracking-[-0.04em] text-clay-ink">
-              Revision Schedule Settings
+              Smart Revision Settings
             </h3>
           </div>
           <button
@@ -159,7 +159,7 @@ export function FSRSSettingsModal({ isOpen, onClose, onSave }: FSRSSettingsModal
           {/* Desired Retention */}
           <div className="space-y-2">
             <div className="flex justify-between items-center text-xs font-bold text-clay-ink">
-              <span>Memory Target Rate</span>
+              <span>Target Memory Retention Rate</span>
               <span className="text-clay-pink font-extrabold">{Math.round(retention * 100)}%</span>
             </div>
             <input
@@ -174,7 +174,7 @@ export function FSRSSettingsModal({ isOpen, onClose, onSave }: FSRSSettingsModal
             <div className="text-[10px] text-clay-muted leading-relaxed flex items-start gap-1">
               <HelpCircle className="w-3.5 h-3.5 shrink-0 text-clay-pink mt-0.5" />
               <span>
-                A higher target (90-95%) helps you remember more, but requires you to revise more often. Default: 90%.
+                Determines how much material you wish to retain. Setting this higher (e.g. 90-95%) helps you recall facts better but increases daily review questions. Default is 90%.
               </span>
             </div>
           </div>
@@ -182,7 +182,7 @@ export function FSRSSettingsModal({ isOpen, onClose, onSave }: FSRSSettingsModal
           {/* Maximum Interval */}
           <div className="space-y-2">
             <div className="flex justify-between items-center text-xs font-bold text-clay-ink">
-              <span>Maximum Revision Gap</span>
+              <span>Maximum Review Interval</span>
               <span className="text-clay-pink font-extrabold">{formatInterval(maxInterval)}</span>
             </div>
             <input
@@ -197,7 +197,7 @@ export function FSRSSettingsModal({ isOpen, onClose, onSave }: FSRSSettingsModal
             <div className="text-[10px] text-clay-muted leading-relaxed flex items-start gap-1">
               <HelpCircle className="w-3.5 h-3.5 shrink-0 text-clay-pink mt-0.5" />
               <span>
-                The longest time to wait before reviewing a question again.
+                The longest gap allowed before you are forced to review a solved concept, even if you know it perfectly.
               </span>
             </div>
           </div>
@@ -205,9 +205,9 @@ export function FSRSSettingsModal({ isOpen, onClose, onSave }: FSRSSettingsModal
           {/* Enable Fuzz (Jitter) */}
           <div className="flex items-center justify-between border-t border-clay-hairline pt-4 pb-1">
             <div className="text-xs">
-              <span className="block font-bold text-clay-ink">Spread Out Reviews</span>
+              <span className="block font-bold text-clay-ink">Smooth Out Review Load</span>
               <span className="block text-[10px] text-clay-muted max-w-[280px]">
-                Slightly varies when questions show up so you don't get overwhelmed with too many questions on a single day.
+                Slightly shifts review dates so you don't get hit with massive piles of questions on a single day.
               </span>
             </div>
             <button
@@ -229,10 +229,10 @@ export function FSRSSettingsModal({ isOpen, onClose, onSave }: FSRSSettingsModal
             <div>
               <span className="block text-xs font-bold text-clay-ink flex items-center gap-1.5">
                 <Award className="w-4 h-4 text-clay-ochre" />
-                Personal Study Gap Tuning
+                Personalized Revision Calibrator
               </span>
               <span className="block text-[10px] text-clay-muted max-w-[340px] mt-0.5 leading-relaxed">
-                Tuning study gaps adapts the revision scheduling directly to your practice history to make reviews highly efficient.
+                Adapts the spacing algorithm to your personal study history. It tunes the system to how fast you forget or retain facts to optimize review gaps.
               </span>
             </div>
 
@@ -245,7 +245,7 @@ export function FSRSSettingsModal({ isOpen, onClose, onSave }: FSRSSettingsModal
 
             {optimizeStatus === 'success' && (
               <div className="bg-clay-mint/20 border border-clay-mint text-clay-teal rounded-clay-md p-3 text-center text-[10px] font-bold animate-[fadeIn_0.2s_ease-out]">
-                ✓ Revision scheduler successfully calibrated!
+                ✓ Study interval tuner calibrated successfully!
               </div>
             )}
 
@@ -257,16 +257,16 @@ export function FSRSSettingsModal({ isOpen, onClose, onSave }: FSRSSettingsModal
 
             {optimizeStatus === 'idle' && (
               <div className="flex items-center justify-between bg-clay-surface-soft border border-clay-hairline rounded-clay-md p-3">
-                <div className="text-[10px] text-clay-muted">
-                  <span className="block font-bold text-clay-ink">History Logs: {logsCount} / 50</span>
-                  <span>Requires 50 review logs minimum to tune.</span>
+                <div className="text-[10px] text-clay-muted text-left">
+                  <span className="block font-bold text-clay-ink">Logged Practice: {logsCount} / 50 Qs</span>
+                  <span>Requires at least 50 logged questions to calibrate.</span>
                 </div>
                 <button
                   disabled={logsCount < 50}
                   onClick={handleOptimize}
                   className="px-3 py-1.5 bg-clay-teal hover:bg-clay-teal/90 disabled:opacity-50 disabled:hover:bg-clay-teal text-white text-[10px] font-bold rounded-clay-md transition-all active:scale-95 cursor-pointer shadow-sm"
                 >
-                  Calibrate
+                  Tune Revision AI
                 </button>
               </div>
             )}
@@ -276,17 +276,17 @@ export function FSRSSettingsModal({ isOpen, onClose, onSave }: FSRSSettingsModal
           <div className="border-t border-clay-hairline pt-4 space-y-3">
             <div>
               <span className="block text-xs font-bold text-clay-ink flex items-center gap-1.5">
-                Local Cache Management
+                Local Question Cache
               </span>
               <span className="block text-[10px] text-clay-muted max-w-[340px] mt-0.5 leading-relaxed">
-                If question text or images are loading incorrectly, clearing your local question cache will trigger them to download fresh from our content servers. This will not delete your learning progress.
+                If question text or images fail to load correctly, clearing this cache triggers fresh downloads from content servers next time you practice. Your study stats are unaffected.
               </span>
             </div>
             
             <div className="flex items-center justify-between bg-clay-surface-soft border border-clay-hairline rounded-clay-md p-3">
-              <div className="text-[10px] text-clay-muted">
-                <span className="block font-bold text-clay-ink">Question Cache: {cachedQuestionsCount}</span>
-                <span>locally cached questions</span>
+              <div className="text-[10px] text-clay-muted text-left">
+                <span className="block font-bold text-clay-ink">Stored Questions: {cachedQuestionsCount}</span>
+                <span>locally cached question packs</span>
               </div>
               <button
                 onClick={handleClearCache}

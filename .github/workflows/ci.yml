@@ -1,0 +1,40 @@
+name: OpenMedQ CI
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: 20
+        cache: 'npm'
+
+    - name: Install Workspace Dependencies
+      run: |
+        npm ci
+
+    - name: Typecheck Backend Workspace
+      run: |
+        cd backend && npx tsc --noEmit
+      continue-on-error: false
+
+    - name: Typecheck Mobile Workspace
+      run: |
+        cd mobile && npx tsc --noEmit
+      continue-on-error: false
+
+    - name: Typecheck and Build Frontend Workspace
+      run: |
+        npm run build:frontend
+      continue-on-error: false

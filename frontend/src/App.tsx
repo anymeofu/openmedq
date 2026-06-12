@@ -10,6 +10,12 @@ import { checkDailyStreakAndReset } from './lib/gamification';
 import { LevelResetModal } from './components/LevelResetModal';
 import { LeaderboardPage } from './pages/leaderboard/LeaderboardPage';
 import { LevelUpCelebrationModal } from './components/LevelUpCelebrationModal';
+import { PrivacyPolicy } from './pages/legal/PrivacyPolicy';
+import { TermsConditions } from './pages/legal/TermsConditions';
+import { Disclaimer } from './pages/legal/Disclaimer';
+import { DMCAPolicy } from './pages/legal/DMCAPolicy';
+import { Contribute } from './pages/contribute/Contribute';
+import { Roadmap } from './pages/roadmap/Roadmap';
 
 import { useTheme } from './components/theme-provider';
 
@@ -38,13 +44,13 @@ function App() {
 
   const clerkAppearance = {
     variables: {
-      colorPrimary: isDark ? '#fffaf0' : '#0a0a0a',
-      colorBackground: isDark ? '#0a1a1a' : '#fffaf0',
-      colorText: isDark ? '#fffaf0' : '#0a0a0a',
-      colorTextSecondary: isDark ? '#7f8f8f' : '#6a6a6a',
-      colorInputBackground: isDark ? '#0a1a1a' : '#fffaf0',
-      colorInputText: isDark ? '#fffaf0' : '#0a0a0a',
-      colorBorder: isDark ? '#1f3535' : '#e5e5e5',
+      colorPrimary: '#ff4d8b', // OpenMedQ Clay Pink accent
+      colorBackground: isDark ? '#000000' : '#fffaf0', // Matches theme canvas exactly
+      colorText: isDark ? '#fffaf0' : '#0a0a0a', // Matches theme ink
+      colorTextSecondary: isDark ? '#8a8a8a' : '#6a6a6a', // Matches theme muted
+      colorInputBackground: isDark ? '#0c0c0c' : '#faf5e8', // Matches theme surface-soft
+      colorInputText: isDark ? '#fffaf0' : '#0a0a0a', // Matches theme ink
+      colorBorder: isDark ? '#222222' : '#e5e5e5', // Matches theme hairline
       borderRadius: '12px',
       fontFamily: 'Inter, sans-serif',
     },
@@ -53,7 +59,8 @@ function App() {
       headerTitle: 'font-rubik font-medium text-xl tracking-tight text-clay-ink text-center',
       headerSubtitle: 'text-clay-muted text-xs text-center',
       socialButtonsBlockButton: 'border border-clay-hairline bg-clay-canvas hover:bg-clay-surface-soft text-clay-ink rounded-clay-md shadow-none h-11',
-      formButtonPrimary: 'bg-clay-ink hover:bg-neutral-800 text-white font-bold h-11 rounded-clay-md transition-colors shadow-none',
+      socialButtonsBlockButtonText: 'text-clay-ink font-semibold',
+      formButtonPrimary: 'bg-clay-ink text-clay-canvas hover:bg-neutral-800 dark:hover:bg-neutral-200 font-bold h-11 rounded-clay-md transition-colors shadow-none',
       formFieldInput: 'bg-clay-canvas border border-clay-hairline rounded-clay-md h-11 focus:border-clay-ink focus:ring-0',
       footerActionLink: 'text-clay-pink hover:text-rose-600',
       footerAction: 'text-clay-muted text-xs',
@@ -64,7 +71,7 @@ function App() {
 
   const { isLoaded, isSignedIn, getToken } = useAuth();
   const { user } = useUser();
-  const [view, setView] = useState<'landing' | 'auth' | 'custom_creator' | 'custom_practice' | 'dashboard' | 'stats' | 'leaderboard'>('landing');
+  const [view, setView] = useState<'landing' | 'auth' | 'custom_creator' | 'custom_practice' | 'dashboard' | 'stats' | 'leaderboard' | 'privacy_policy' | 'terms_conditions' | 'disclaimer' | 'dmca_policy' | 'contribute' | 'roadmap'>('landing');
 
   const [customModuleConfig, setCustomModuleConfig] = useState<CustomModuleConfig | null>(null);
   const [authTab, setAuthTab] = useState<'signin' | 'signup'>('signin');
@@ -91,12 +98,93 @@ function App() {
     }
   }, [isLoaded]);
 
+  // Listen for hash-based routing to support legal deep links (e.g. /#privacy, /#terms)
+  useEffect(() => {
+    const handleHashRoute = () => {
+      const hash = window.location.hash.toLowerCase();
+      if (hash === '#privacy-policy' || hash === '#privacy') {
+        setView('privacy_policy');
+      } else if (hash === '#terms-conditions' || hash === '#terms') {
+        setView('terms_conditions');
+      } else if (hash === '#disclaimer') {
+        setView('disclaimer');
+      } else if (hash === '#dmca-policy' || hash === '#dmca') {
+        setView('dmca_policy');
+      } else if (hash === '#contribute') {
+        setView('contribute');
+      } else if (hash === '#roadmap') {
+        setView('roadmap');
+      }
+    };
+    handleHashRoute();
+    window.addEventListener('hashchange', handleHashRoute);
+    return () => window.removeEventListener('hashchange', handleHashRoute);
+  }, []);
+
+  // Dynamic canonical and social preview meta tag updater
+  useEffect(() => {
+    const canonicalUrl = `${window.location.origin}${window.location.pathname}${window.location.search}${window.location.hash}`;
+    
+    // Update or create canonical link tag
+    let canonicalLink = document.querySelector("link[rel='canonical']");
+    if (!canonicalLink) {
+      canonicalLink = document.createElement('link');
+      canonicalLink.setAttribute('rel', 'canonical');
+      document.head.appendChild(canonicalLink);
+    }
+    canonicalLink.setAttribute('href', canonicalUrl);
+
+    // Update or create OG URL tag
+    let ogUrl = document.querySelector("meta[property='og:url']");
+    if (!ogUrl) {
+      ogUrl = document.createElement('meta');
+      ogUrl.setAttribute('property', 'og:url');
+      document.head.appendChild(ogUrl);
+    }
+    ogUrl.setAttribute('content', canonicalUrl);
+
+    // Update or create Twitter URL tag
+    let twitterUrl = document.querySelector("meta[property='twitter:url']") || document.querySelector("meta[name='twitter:url']");
+    if (!twitterUrl) {
+      twitterUrl = document.createElement('meta');
+      twitterUrl.setAttribute('name', 'twitter:url');
+      document.head.appendChild(twitterUrl);
+    }
+    twitterUrl.setAttribute('content', canonicalUrl);
+
+    // Update preview images
+    const ogImage = document.querySelector("meta[property='og:image']");
+    if (ogImage) {
+      ogImage.setAttribute('content', `${window.location.origin}/logo.png`);
+    }
+    const twitterImage = document.querySelector("meta[property='twitter:image']") || document.querySelector("meta[name='twitter:image']");
+    if (twitterImage) {
+      twitterImage.setAttribute('content', `${window.location.origin}/logo.png`);
+    }
+  }, [view]);
+
+  const handleBackToLanding = () => {
+    window.location.hash = '';
+    setView('landing');
+  };
+
   // Automatically transition to dashboard once authenticated (if in auth view)
   useEffect(() => {
     if (isLoaded && isSignedIn && view === 'auth') {
       setView('dashboard');
     }
   }, [isLoaded, isSignedIn, view]);
+
+  // Handle cleaning up IndexedDB and localStorage on sign out
+  const prevSignedInRef = useRef<boolean | undefined>(undefined);
+  useEffect(() => {
+    if (isLoaded) {
+      if (prevSignedInRef.current === true && !isSignedIn) {
+        SyncManager.logoutCleanup();
+      }
+      prevSignedInRef.current = isSignedIn;
+    }
+  }, [isSignedIn, isLoaded]);
 
   // Check for pending level-up celebration when returning to dashboard
   useEffect(() => {
@@ -151,16 +239,76 @@ function App() {
     return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
   }, [triggerSync]);
 
-  const startPracticeView = () => {
+  const startPracticeView = useCallback(() => {
     setView('dashboard');
-  };
+  }, []);
 
-  const triggerAuthSimulate = () => {
+  const triggerAuthSimulate = useCallback(() => {
     setView('auth');
-  };
+  }, []);
+
+  const handleViewPrivacy = useCallback(() => {
+    setView('privacy_policy');
+  }, []);
+
+  const handleViewTerms = useCallback(() => {
+    setView('terms_conditions');
+  }, []);
+
+  const handleViewDisclaimer = useCallback(() => {
+    setView('disclaimer');
+  }, []);
+
+  const handleViewDMCA = useCallback(() => {
+    setView('dmca_policy');
+  }, []);
+
+  const handleViewContribute = useCallback(() => {
+    setView('contribute');
+  }, []);
+
+  const handleViewRoadmap = useCallback(() => {
+    setView('roadmap');
+  }, []);
 
   if (view === 'landing') {
-    return <LandingPage onStartPractice={startPracticeView} onSignIn={triggerAuthSimulate} />;
+    return (
+      <LandingPage 
+        onStartPractice={startPracticeView} 
+        onSignIn={triggerAuthSimulate} 
+        onViewPrivacy={handleViewPrivacy}
+        onViewTerms={handleViewTerms}
+        onViewDisclaimer={handleViewDisclaimer}
+        onViewDMCA={handleViewDMCA}
+        onViewContribute={handleViewContribute}
+        onViewRoadmap={handleViewRoadmap}
+        isDark={isDark}
+      />
+    );
+  }
+
+  if (view === 'privacy_policy') {
+    return <PrivacyPolicy onBack={handleBackToLanding} />;
+  }
+
+  if (view === 'terms_conditions') {
+    return <TermsConditions onBack={handleBackToLanding} />;
+  }
+
+  if (view === 'disclaimer') {
+    return <Disclaimer onBack={handleBackToLanding} />;
+  }
+
+  if (view === 'dmca_policy') {
+    return <DMCAPolicy onBack={handleBackToLanding} />;
+  }
+
+  if (view === 'contribute') {
+    return <Contribute onBack={handleBackToLanding} />;
+  }
+
+  if (view === 'roadmap') {
+    return <Roadmap onBack={handleBackToLanding} />;
   }
 
   if (view === 'auth') {
@@ -171,7 +319,7 @@ function App() {
 
         <div className="w-full max-w-md flex flex-col items-center relative z-10">
           <div className="flex items-center gap-3 mb-6 cursor-pointer group" onClick={() => setView('landing')}>
-            <img src="/logo.png" className="w-10 h-10 rounded-clay-md shadow-sm group-hover:scale-105 transition-transform duration-300 object-cover" alt="OpenMedQ Logo" />
+            <img src={isDark ? '/logo-dark.png' : '/logo-light.png'} className="w-10 h-10 rounded-clay-md shadow-sm group-hover:scale-105 transition-transform duration-300 object-contain" alt="OpenMedQ Logo" />
             <span className="text-xl font-bold tracking-tight text-clay-ink">OpenMedQ</span>
           </div>
 

@@ -159,6 +159,27 @@ export class SyncManager {
     }
   }
 
+  public static async logoutCleanup(): Promise<void> {
+    try {
+      await db.transaction('rw', [db.progress, db.reviewLogs, db.userStats], async () => {
+        await db.progress.clear();
+        await db.reviewLogs.clear();
+        await db.userStats.clear();
+      });
+      localStorage.removeItem('openmedq_last_sync_timestamp');
+      localStorage.removeItem('openmedq_last_month_stats');
+      localStorage.removeItem('openmedq_target_exam');
+      localStorage.removeItem('openmedq_daily_target');
+      localStorage.removeItem('openmedq_fsrs_retention');
+      localStorage.removeItem('openmedq_fsrs_max_interval');
+      localStorage.removeItem('openmedq_fsrs_fuzz');
+      localStorage.removeItem('openmedq_fsrs_weights');
+      console.log('IndexedDB and localStorage cleared on logout.');
+    } catch (err) {
+      console.warn('Failed to clear local user data during logout:', err);
+    }
+  }
+
   // Two-Way Sync with Cloudflare D1
   public static async syncWithD1(
     getToken: () => Promise<string | null>,

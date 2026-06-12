@@ -6,8 +6,10 @@ export interface Subject {
   count: number;
 }
 
+export const rawSubjectsData = subjectsData as Subject[];
+
 // Map the processed subjects from the JSON file to keep counts 100% accurate, limiting to standard MBBS subjects 1-19
-export const subjectsList: Subject[] = (subjectsData as Subject[]).filter(s => s.id >= 1 && s.id <= 19);
+export const subjectsList: Subject[] = rawSubjectsData.filter(s => s.id >= 1 && s.id <= 19);
 
 export interface PYQPaper {
   year: number;
@@ -36,4 +38,7 @@ export const allSubjectsList: Subject[] = [
   ...subjectsList,
   NEET_PG_PYQ_SUBJECT,
 ];
+
+// Sum up standard subjects + Dental + General + NEET PG PYQs
+export const totalDBQuestionCount = rawSubjectsData.reduce((acc, s) => acc + s.count, 0) + NEET_PG_PYQ_SUBJECT.count;
 

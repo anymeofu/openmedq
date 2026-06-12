@@ -10,7 +10,8 @@
     "@clerk/backend": "^3.5.0",
     "@clerk/hono": "^0.1.33",
     "drizzle-orm": "^0.45.2",
-    "hono": "^4.12.23"
+    "hono": "^4.12.23",
+    "zod": "^3.24.2"
   },
   "devDependencies": {
     "@types/node": "^25.9.2",

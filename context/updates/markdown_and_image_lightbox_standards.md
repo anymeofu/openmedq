@@ -67,3 +67,23 @@ To provide a premium clinical illustration zoom experience, we use native browse
   };
   ```
 - Prevent event bubbling when clicking on the zoomed image itself.
+
+---
+
+## 3. Question Pack Image Path & Schema Standards
+
+To support medical student contributions and seamless offline caching, QBank question packs accept image paths across multiple properties:
+- `imageUrl`: Main illustration shown below the question stem.
+- `explanationImageUrl`: Visual explanation shown in the explanation block.
+- `opaImageUrl`, `opbImageUrl`, `opcImageUrl`, `opdImageUrl`: Option-specific illustrations.
+
+### Supported Path Schemes
+All image properties must be strings and support two primary format categories:
+1. **Absolute Remote URLs (e.g. Unsplash, public CDN, raw R2 endpoints)**:
+   - Used for quick drafts or testing.
+   - Must start with `http://`, `https://`, or `data:`.
+   - Example: `"https://images.unsplash.com/photo-1576091160550-2173dba999ef?auto=format&fit=crop&w=600&q=80"`
+2. **Relative CDN/Storage Paths**:
+   - Used for production question packs where assets are hosted on OpenMedQ's Cloudflare R2 bucket.
+   - Automatically handled by `<LocalImage />` for IndexedDB offline caching using Dexie.
+   - Example: `"images/cardio/inferior_mi_ecg.png"`
