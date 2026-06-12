@@ -6,10 +6,10 @@ OpenMedQ is a high-performance, open-source medical MCQ practice application (fo
 
 This is a monorepo managed via npm workspaces:
 
-*   **[frontend](file:///Users/sain/development/openmedq/frontend/)**: Vite + React + TypeScript Single Page Application (SPA), deployed to Cloudflare Pages.
-*   **[backend](file:///Users/sain/development/openmedq/backend/)**: Hono API framework deployed to Cloudflare Workers.
-*   **[mobile](file:///Users/sain/development/openmedq/mobile/)**: React Native mobile application built with Expo and Expo Router.
-*   **[shared](file:///Users/sain/development/openmedq/shared/)**: Shared domain assets, configurations (e.g. subjects), and Typescript types.
+*   **[frontend](./frontend/)**: Vite + React + TypeScript Single Page Application (SPA), deployed to Cloudflare Pages.
+*   **[backend](./backend/)**: Hono API framework deployed to Cloudflare Workers.
+*   **[mobile](./mobile/)**: React Native mobile application built with Expo and Expo Router.
+*   **[shared](./shared/)**: Shared domain assets, configurations (e.g. subjects), and Typescript types.
 
 ## ⚡ Core Architecture & Free-Tier Exploits
 
@@ -21,7 +21,7 @@ OpenMedQ is built to scale to thousands of users for $0/month using Cloudflare F
 
 ## 🛠️ Local Development Setup
 
-To run the complete development environment locally, ensure you have Node.js (version 18 or above) installed, then follow these steps:
+To run the complete development environment locally, ensure you have Node.js 18 (minimum) or Node.js 20 (recommended, as CI runs on Node 20) installed, then follow these steps:
 
 ### 1. Install Dependencies
 Run the installation command in the root directory:
@@ -64,4 +64,4 @@ npm run start -w mobile
 
 ## 📜 License
 
-This project is licensed under the MIT License. See the [LICENSE](file:///Users/sain/development/openmedq/LICENSE) file for details.
+This project is licensed under the MIT License. See the [LICENSE](./LICENSE) file for details.
