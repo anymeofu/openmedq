@@ -162,7 +162,7 @@ function App() {
     };
   }, []);
 
-  // Dynamic canonical and social preview meta tag updater
+  // Dynamic title, description, canonical and social preview meta tag updater
   useEffect(() => {
     const canonicalUrl = `${window.location.origin}${window.location.pathname}${window.location.search}${window.location.hash}`;
     
@@ -201,6 +201,92 @@ function App() {
     const twitterImage = document.querySelector("meta[property='twitter:image']") || document.querySelector("meta[name='twitter:image']");
     if (twitterImage) {
       twitterImage.setAttribute('content', `${window.location.origin}/logo.png`);
+    }
+
+    // Dynamic Title and Description mapping
+    let pageTitle = 'OpenMedQ - Free NEET PG, FMGE & INI-CET Prep';
+    let pageDescription = 'OpenMedQ is a 100% free, student-built open-source active-recall spaced repetition study bank for NEET PG, FMGE, and INI-CET medical post-graduate preparation.';
+
+    switch (view) {
+      case 'privacy_policy':
+        pageTitle = 'Privacy Policy - OpenMedQ';
+        pageDescription = "Read OpenMedQ's Privacy Policy to understand how we protect and handle your personal data and study progress.";
+        break;
+      case 'terms_conditions':
+        pageTitle = 'Terms and Conditions - OpenMedQ';
+        pageDescription = "Read the Terms and Conditions for using OpenMedQ's active-recall medical post-graduate exam practice platform.";
+        break;
+      case 'disclaimer':
+        pageTitle = 'Disclaimer - OpenMedQ';
+        pageDescription = 'Important medical education disclaimers and terms of service limits for OpenMedQ study modules.';
+        break;
+      case 'dmca_policy':
+        pageTitle = 'DMCA Copyright Policy - OpenMedQ';
+        pageDescription = "OpenMedQ's DMCA copyright agent contacts, notices, and intellectual property guidelines.";
+        break;
+      case 'contribute':
+        pageTitle = 'Contribute to OpenMedQ - Open-Source Medical Question Bank';
+        pageDescription = 'Help medical students prepare for NEET PG and FMGE. Contribute questions, peer-review explanations, or contribute code to our open-source codebase.';
+        break;
+      case 'roadmap':
+        pageTitle = 'OpenMedQ Development Roadmap';
+        pageDescription = 'Explore the development roadmap of OpenMedQ, including future updates for active-recall modules, FSRS algorithm optimization, and mobile app support.';
+        break;
+      case 'download':
+        pageTitle = 'Download OpenMedQ Android APK - Offline Study App';
+        pageDescription = "Download the latest version of OpenMedQ's mobile app APK to practice spaced repetition flashcards offline on your Android device.";
+        break;
+      case 'dashboard':
+        pageTitle = 'Study Dashboard - OpenMedQ';
+        pageDescription = 'Access your spaced repetition practice modules, view streaks, and track active-recall medical exam preparation metrics.';
+        break;
+      case 'stats':
+        pageTitle = 'Study Analytics - OpenMedQ';
+        pageDescription = 'Track your learning statistics, FSRS retention rates, and daily active dopamine/XP metrics on OpenMedQ.';
+        break;
+      case 'leaderboard':
+        pageTitle = 'Leaderboard - OpenMedQ';
+        pageDescription = 'See monthly leaderboards, top medical aspirants, and sync status for active preparation.';
+        break;
+      case 'auth':
+        pageTitle = 'Sign In / Register - OpenMedQ';
+        pageDescription = 'Create a free OpenMedQ account to synchronize your medical PG preparation progress across devices.';
+        break;
+    }
+
+    document.title = pageTitle;
+
+    // Update description meta tag
+    let descMeta = document.querySelector("meta[name='description']");
+    if (!descMeta) {
+      descMeta = document.createElement('meta');
+      descMeta.setAttribute('name', 'description');
+      document.head.appendChild(descMeta);
+    }
+    descMeta.setAttribute('content', pageDescription);
+
+    // Update OG description tag
+    let ogDesc = document.querySelector("meta[property='og:description']");
+    if (ogDesc) {
+      ogDesc.setAttribute('content', pageDescription);
+    }
+
+    // Update Twitter description tag
+    let twitterDesc = document.querySelector("meta[name='twitter:description']") || document.querySelector("meta[property='twitter:description']");
+    if (twitterDesc) {
+      twitterDesc.setAttribute('content', pageDescription);
+    }
+
+    // Update OG title tag
+    let ogTitle = document.querySelector("meta[property='og:title']");
+    if (ogTitle) {
+      ogTitle.setAttribute('content', pageTitle);
+    }
+
+    // Update Twitter title tag
+    let twitterTitle = document.querySelector("meta[name='twitter:title']") || document.querySelector("meta[property='twitter:title']");
+    if (twitterTitle) {
+      twitterTitle.setAttribute('content', pageTitle);
     }
   }, [view]);
 
