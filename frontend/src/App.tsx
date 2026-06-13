@@ -98,28 +98,36 @@ function App() {
     }
   }, [isLoaded]);
 
-  // Listen for hash-based routing to support legal deep links (e.g. /#privacy, /#terms)
+  // Listen for pathname or hash-based routing to support legal deep links (e.g. /privacy, /terms)
   useEffect(() => {
-    const handleHashRoute = () => {
+    const handleRouting = () => {
+      const path = window.location.pathname.toLowerCase();
       const hash = window.location.hash.toLowerCase();
-      if (hash === '#privacy-policy' || hash === '#privacy') {
+      
+      if (path === '/privacy-policy' || path === '/privacy' || hash === '#privacy-policy' || hash === '#privacy') {
         setView('privacy_policy');
-      } else if (hash === '#terms-conditions' || hash === '#terms') {
+      } else if (path === '/terms-conditions' || path === '/terms' || hash === '#terms-conditions' || hash === '#terms') {
         setView('terms_conditions');
-      } else if (hash === '#disclaimer') {
+      } else if (path === '/disclaimer' || hash === '#disclaimer') {
         setView('disclaimer');
-      } else if (hash === '#dmca-policy' || hash === '#dmca') {
+      } else if (path === '/dmca-policy' || path === '/dmca' || hash === '#dmca-policy' || hash === '#dmca') {
         setView('dmca_policy');
-      } else if (hash === '#contribute') {
+      } else if (path === '/contribute' || hash === '#contribute') {
         setView('contribute');
-      } else if (hash === '#roadmap') {
+      } else if (path === '/roadmap' || hash === '#roadmap') {
         setView('roadmap');
+      } else if (path === '/' && (view === 'privacy_policy' || view === 'terms_conditions' || view === 'disclaimer' || view === 'dmca_policy' || view === 'contribute' || view === 'roadmap')) {
+        setView('landing');
       }
     };
-    handleHashRoute();
-    window.addEventListener('hashchange', handleHashRoute);
-    return () => window.removeEventListener('hashchange', handleHashRoute);
-  }, []);
+    handleRouting();
+    window.addEventListener('hashchange', handleRouting);
+    window.addEventListener('popstate', handleRouting);
+    return () => {
+      window.removeEventListener('hashchange', handleRouting);
+      window.removeEventListener('popstate', handleRouting);
+    };
+  }, [view]);
 
   // Dynamic canonical and social preview meta tag updater
   useEffect(() => {
@@ -165,6 +173,9 @@ function App() {
 
   const handleBackToLanding = () => {
     window.location.hash = '';
+    if (window.location.pathname !== '/') {
+      window.history.pushState(null, '', '/');
+    }
     setView('landing');
   };
 
@@ -248,26 +259,32 @@ function App() {
   }, []);
 
   const handleViewPrivacy = useCallback(() => {
+    window.history.pushState(null, '', '/privacy');
     setView('privacy_policy');
   }, []);
 
   const handleViewTerms = useCallback(() => {
+    window.history.pushState(null, '', '/terms');
     setView('terms_conditions');
   }, []);
 
   const handleViewDisclaimer = useCallback(() => {
+    window.history.pushState(null, '', '/disclaimer');
     setView('disclaimer');
   }, []);
 
   const handleViewDMCA = useCallback(() => {
+    window.history.pushState(null, '', '/dmca');
     setView('dmca_policy');
   }, []);
 
   const handleViewContribute = useCallback(() => {
+    window.history.pushState(null, '', '/contribute');
     setView('contribute');
   }, []);
 
   const handleViewRoadmap = useCallback(() => {
+    window.history.pushState(null, '', '/roadmap');
     setView('roadmap');
   }, []);
 
