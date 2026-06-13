@@ -67,3 +67,6 @@ This directory logs updates, deprecated patterns, and common mistakes encountere
 * [frontend_security_headers_and_routing_fallback.md](file:///Users/sain/development/openmedq/context/updates/frontend_security_headers_and_routing_fallback.md):
   * **Category**: Common mistakes to avoid / Architecture standards.
   * **Description**: Standards for strict custom headers and static exclusions for SPA wildcard routing on Cloudflare Pages.
+* [dynamic_seo_meta_tags_standards.md](file:///Users/sain/development/openmedq/context/updates/dynamic_seo_meta_tags_standards.md):
+  * **Category**: Common mistakes to avoid / Architecture standards.
+  * **Description**: Standards for dynamic document title, description, and social meta tag updates in client-side SPA routers.
