@@ -5,12 +5,15 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "mobile",
+    "scheme": "openmedq",
     "userInterfaceStyle": "automatic",
     "ios": {
       "icon": "./assets/images/icon.png",
       "bundleIdentifier": "com.openmedq.mobile",
-      "bitcode": false
+      "bitcode": false,
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "package": "com.openmedq.mobile",
@@ -53,8 +56,16 @@
             "minSdkVersion": 24
           }
         }
-      ]
+      ],
+      "expo-font",
+      "expo-image"
     ],
+    "updates": {
+      "url": "https://u.expo.dev/3dffb741-abd7-47b3-87eb-df1696f9dd12"
+    },
+    "runtimeVersion": {
+      "policy": "fingerprint"
+    },
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
