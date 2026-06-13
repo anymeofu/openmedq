@@ -61,5 +61,6 @@ This directory logs updates, deprecated patterns, and common mistakes encountere
 * [github_releases_cors_limitations.md](file:///Users/sain/development/openmedq/context/updates/github_releases_cors_limitations.md):
   * **Category**: Common mistakes to avoid / Architecture standards.
   * **Description**: Standards for handling GitHub release download CORS blocking by using relative same-origin files to host SHA-256 integrity checksums.
-
-
+* [cors_and_security_headers_vulnerabilities.md](file:///Users/sain/development/openmedq/context/updates/cors_and_security_headers_vulnerabilities.md):
+  * **Category**: Common mistakes to avoid / Architecture standards.
+  * **Description**: Standards for strict CORS domain checks using regex and integrating global Hono security headers.
