@@ -64,3 +64,6 @@ This directory logs updates, deprecated patterns, and common mistakes encountere
 * [cors_and_security_headers_vulnerabilities.md](file:///Users/sain/development/openmedq/context/updates/cors_and_security_headers_vulnerabilities.md):
   * **Category**: Common mistakes to avoid / Architecture standards.
   * **Description**: Standards for strict CORS domain checks using regex and integrating global Hono security headers.
+* [frontend_security_headers_and_routing_fallback.md](file:///Users/sain/development/openmedq/context/updates/frontend_security_headers_and_routing_fallback.md):
+  * **Category**: Common mistakes to avoid / Architecture standards.
+  * **Description**: Standards for strict custom headers and static exclusions for SPA wildcard routing on Cloudflare Pages.
