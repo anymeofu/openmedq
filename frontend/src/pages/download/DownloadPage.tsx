@@ -5,11 +5,90 @@ interface DownloadPageProps {
   onBack: () => void;
 }
 
+const CONFIG = {
+  HASH_URL: "https://cdn.openmedq.com/builds/openmedq-latest.apk.sha256",
+  FETCH_TIMEOUT_MS: 5000,
+  RETRY_COUNT: 3,
+};
+
 export function DownloadPage({ onBack }: DownloadPageProps) {
   const [copied, setCopied] = useState(false);
   const [copyError, setCopyError] = useState<string | null>(null);
   const copyTimeoutRef = useRef<any>(null);
-  const hash = "3a6886756b41567a97be20e52f4999c52658fa21e4ec3b2e04db3ee2e289ce21"; // SHA-256 checksum of openmedq-latest.apk
+  
+  const [downloadHash, setDownloadHash] = useState<string | null>(null);
+  const [hashLoading, setHashLoading] = useState(true);
+  const [hashError, setHashError] = useState(false);
+  const isMountedRef = useRef(true);
+
+  const fetchHashWithRetry = (retriesLeft = CONFIG.RETRY_COUNT) => {
+    if (!isMountedRef.current) return;
+    setHashLoading(true);
+    setHashError(false);
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), CONFIG.FETCH_TIMEOUT_MS);
+
+    fetch(CONFIG.HASH_URL, { signal: controller.signal })
+      .then(res => {
+        if (!res.ok) throw new Error(`HTTP error ${res.status}`);
+        return res.text();
+      })
+      .then(text => {
+        if (!isMountedRef.current) return;
+        const cleanHash = text.trim();
+        if (/^[a-fA-F0-9]{64}$/.test(cleanHash)) {
+          setDownloadHash(cleanHash);
+          setHashError(false);
+          setHashLoading(false);
+        } else {
+          throw new Error('Invalid SHA-256 checksum format');
+        }
+      })
+      .catch(err => {
+        if (!isMountedRef.current) return;
+        if (err.name === 'AbortError' && retriesLeft === CONFIG.RETRY_COUNT) {
+          return;
+        }
+        console.error(`Failed to fetch checksum (${retriesLeft} retries left):`, err);
+        if (retriesLeft > 0) {
+          setTimeout(() => fetchHashWithRetry(retriesLeft - 1), 1000);
+        } else {
+          setHashError(true);
+          setHashLoading(false);
+        }
+      })
+      .finally(() => {
+        clearTimeout(timeoutId);
+      });
+
+    return controller;
+  };
+
+  const fallbackCopy = (text: string) => {
+    try {
+      const textArea = document.createElement("textarea");
+      textArea.value = text;
+      textArea.style.top = "0";
+      textArea.style.left = "0";
+      textArea.style.position = "fixed";
+      document.body.appendChild(textArea);
+      textArea.focus();
+      textArea.select();
+      const successful = document.execCommand('copy');
+      document.body.removeChild(textArea);
+      if (successful) {
+        setCopied(true);
+        copyTimeoutRef.current = setTimeout(() => setCopied(false), 2000);
+      } else {
+        throw new Error('execCommand copy failed');
+      }
+    } catch (err) {
+      console.warn('Fallback clipboard copy failed, prompting manual copy:', err);
+      setCopyError('Press Ctrl+C to copy');
+      copyTimeoutRef.current = setTimeout(() => setCopyError(null), 3000);
+    }
+  };
 
   const handleCopyHash = () => {
     if (copyTimeoutRef.current) {
@@ -17,20 +96,30 @@ export function DownloadPage({ onBack }: DownloadPageProps) {
     }
     setCopyError(null);
 
-    navigator.clipboard.writeText(hash)
-      .then(() => {
-        setCopied(true);
-        copyTimeoutRef.current = setTimeout(() => setCopied(false), 2000);
-      })
-      .catch((err) => {
-        console.error('Failed to copy hash to clipboard:', err);
-        setCopyError('Failed to copy checksum.');
-        copyTimeoutRef.current = setTimeout(() => setCopyError(null), 3000);
-      });
+    const currentHash = downloadHash || "";
+
+    if (typeof navigator !== 'undefined' && navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
+      navigator.clipboard.writeText(currentHash)
+        .then(() => {
+          setCopied(true);
+          copyTimeoutRef.current = setTimeout(() => setCopied(false), 2000);
+        })
+        .catch((err) => {
+          console.error('Failed to copy hash to clipboard:', err);
+          fallbackCopy(currentHash);
+        });
+    } else {
+      fallbackCopy(currentHash);
+    }
   };
 
   useEffect(() => {
+    isMountedRef.current = true;
+    const controller = fetchHashWithRetry();
+
     return () => {
+      isMountedRef.current = false;
+      controller?.abort();
       if (copyTimeoutRef.current) {
         clearTimeout(copyTimeoutRef.current);
       }
@@ -116,15 +205,30 @@ export function DownloadPage({ onBack }: DownloadPageProps) {
                 </span>
                 <div className="flex items-center justify-between gap-2">
                   <code className="text-[10px] font-mono text-clay-ink break-all select-all block pr-8 line-clamp-1">
-                    {hash}
+                    {hashLoading ? (
+                      <span className="text-clay-muted italic">Loading checksum...</span>
+                    ) : hashError ? (
+                      <span className="text-clay-coral font-semibold">Integrity check unavailable</span>
+                    ) : (
+                      downloadHash
+                    )}
                   </code>
-                  <button
-                    onClick={handleCopyHash}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-clay-muted hover:text-clay-ink transition-colors cursor-pointer"
-                    title="Copy Checksum"
-                  >
-                    {copied ? <Check className="w-3.5 h-3.5 text-clay-mint" /> : <Copy className="w-3.5 h-3.5" />}
-                  </button>
+                  {!hashLoading && !hashError && downloadHash ? (
+                    <button
+                      onClick={handleCopyHash}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-clay-muted hover:text-clay-ink transition-colors cursor-pointer"
+                      title="Copy Checksum"
+                    >
+                      {copied ? <Check className="w-3.5 h-3.5 text-clay-mint" /> : <Copy className="w-3.5 h-3.5" />}
+                    </button>
+                  ) : hashError ? (
+                    <button
+                      onClick={() => fetchHashWithRetry()}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-clay-pink hover:underline cursor-pointer"
+                    >
+                      Retry
+                    </button>
+                  ) : null}
                 </div>
               </div>
             </div>

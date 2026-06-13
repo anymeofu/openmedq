@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { StyleSheet, Text, View, Pressable, Animated } from 'react-native';
+import { StyleSheet, Text, View, Pressable, Animated, Alert } from 'react-native';
 import * as Updates from 'expo-updates';
 import { ArrowUpCircle, X } from 'lucide-react-native';
 import { useTheme } from '@/hooks/use-theme';
@@ -41,8 +41,16 @@ export function UpdateNotifier() {
   const handleRestart = async () => {
     try {
       await Updates.reloadAsync();
-    } catch (err) {
+    } catch (err: any) {
       console.warn('Failed to reload app for update:', err);
+      Alert.alert(
+        "Update failed",
+        err?.message || "An unexpected error occurred while applying the update. Please try restarting the app manually.",
+        [
+          { text: "Retry", onPress: () => { Promise.resolve().then(() => handleRestart()); } },
+          { text: "Dismiss", style: "cancel" }
+        ]
+      );
     }
   };
 
