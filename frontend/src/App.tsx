@@ -126,6 +126,95 @@ function App() {
   const [lastMonthStats, setLastMonthStats] = useState<any | null>(null);
   const [pendingLevelUp, setPendingLevelUp] = useState<any | null>(null);
 
+  // WebMCP AI Agent Browser Integration
+  useEffect(() => {
+    const nav = navigator as any;
+    if (nav && nav.modelContext && typeof nav.modelContext.provideContext === 'function') {
+      try {
+        nav.modelContext.provideContext({
+          tools: [
+            {
+              name: 'start_practice_session',
+              description: 'Exposes a tool to start an active recall spaced repetition practice session for a specific MBBS subject (IDs 1-19).',
+              inputSchema: {
+                type: 'object',
+                properties: {
+                  subjectId: {
+                    type: 'number',
+                    description: 'The standard subject ID (1: Anatomy, 2: Physiology, 3: Biochemistry, 4: Pharmacology, 5: Pathology, 6: Microbiology, 7: Forensic Medicine, 8: SPM, 9: Ophthalmology, 10: ENT, 11: Medicine, 12: Surgery, 13: OBGY, 14: Pediatrics, 15: Orthopedics, 16: Dermatology, 17: Psychiatry, 18: Radiology, 19: Anesthesiology)'
+                  }
+                },
+                required: ['subjectId']
+              },
+              execute: async (args: { subjectId: number }) => {
+                setCustomModuleConfig({
+                  subjectIds: [args.subjectId],
+                  status: 'ALL',
+                  timerMode: 'STOPWATCH',
+                  timerValue: 0,
+                  limit: 20,
+                  isStandard: true
+                });
+                setView('custom_practice');
+                return { success: true, message: `Started practice session for subject ID ${args.subjectId}` };
+              }
+            },
+            {
+              name: 'navigate_to_section',
+              description: 'Navigates the web application view to a specific section.',
+              inputSchema: {
+                type: 'object',
+                properties: {
+                  page: {
+                    type: 'string',
+                    enum: ['landing', 'blog', 'roadmap', 'download', 'contribute', 'privacy', 'terms', 'disclaimer', 'dmca'],
+                    description: 'The target page/section'
+                  }
+                },
+                required: ['page']
+              },
+              execute: async (args: { page: string }) => {
+                const target = args.page.toLowerCase();
+                if (target === 'landing') {
+                  setView('landing');
+                  window.history.pushState(null, '', '/');
+                } else if (target === 'blog') {
+                  setView('blog');
+                  window.history.pushState(null, '', '/blog');
+                } else if (target === 'roadmap') {
+                  setView('roadmap');
+                  window.history.pushState(null, '', '/roadmap');
+                } else if (target === 'download') {
+                  setView('download');
+                  window.history.pushState(null, '', '/download');
+                } else if (target === 'contribute') {
+                  setView('contribute');
+                  window.history.pushState(null, '', '/contribute');
+                } else if (target === 'privacy') {
+                  setView('privacy_policy');
+                  window.history.pushState(null, '', '/privacy');
+                } else if (target === 'terms') {
+                  setView('terms_conditions');
+                  window.history.pushState(null, '', '/terms');
+                } else if (target === 'disclaimer') {
+                  setView('disclaimer');
+                  window.history.pushState(null, '', '/disclaimer');
+                } else if (target === 'dmca') {
+                  setView('dmca_policy');
+                  window.history.pushState(null, '', '/dmca');
+                }
+                window.scrollTo({ top: 0 });
+                return { success: true, message: `Navigated to ${args.page}` };
+              }
+            }
+          ]
+        });
+      } catch (err) {
+        console.warn('Failed to register WebMCP context tools:', err);
+      }
+    }
+  }, [setView, setCustomModuleConfig]);
+
   // Run daily streak and month rollover checks on app load
   useEffect(() => {
     const runStreakCheck = async () => {

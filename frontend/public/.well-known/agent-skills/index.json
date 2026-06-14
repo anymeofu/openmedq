@@ -1,0 +1,12 @@
+{
+  "$schema": "https://agentskills.io/schema/v0.2.0.json",
+  "skills": [
+    {
+      "name": "search_mcqs",
+      "type": "action",
+      "description": "Search and retrieve high-yield medical multiple choice questions (MCQs) across 19 MBBS subjects.",
+      "url": "https://api.openmedq.com/api/questions/pack",
+      "sha256": "8f41857948f65809f6b4ffae278fbfbfcfbfcfdfefefcf49b389432f41b2cdef"
+    }
+  ]
+}

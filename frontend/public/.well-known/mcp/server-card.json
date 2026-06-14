@@ -1,0 +1,15 @@
+{
+  "serverInfo": {
+    "name": "OpenMedQ MCP Server",
+    "version": "1.0.0"
+  },
+  "transport": {
+    "type": "sse",
+    "url": "https://api.openmedq.com/mcp"
+  },
+  "capabilities": {
+    "tools": true,
+    "resources": false,
+    "prompts": false
+  }
+}

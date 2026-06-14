@@ -1,0 +1,10 @@
+{
+  "resource": "https://api.openmedq.com/",
+  "authorization_servers": [
+    "https://clerk.openmedq.com"
+  ],
+  "scopes_supported": [
+    "read:progress",
+    "write:progress"
+  ]
+}

@@ -1,0 +1,25 @@
+{
+  "linkset": [
+    {
+      "anchor": "https://api.openmedq.com/",
+      "service-desc": [
+        {
+          "href": "https://api.openmedq.com/doc",
+          "type": "application/openapi+json"
+        }
+      ],
+      "service-doc": [
+        {
+          "href": "https://github.com/Riso19/openmedq",
+          "type": "text/html"
+        }
+      ],
+      "status": [
+        {
+          "href": "https://api.openmedq.com/",
+          "type": "application/json"
+        }
+      ]
+    }
+  ]
+}
