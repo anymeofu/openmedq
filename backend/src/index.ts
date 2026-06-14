@@ -191,14 +191,246 @@ app.use('/api/*', async (c, next) => {
   await next();
 });
 
-// Base Health Check
+// Base Health Check with Agent Discovery and Markdown Content Negotiation
 const routes = app.get('/', (c) => {
+  const accept = c.req.header('Accept') || '';
+  
+  c.header('Link', '</.well-known/api-catalog>; rel="api-catalog", </llms.txt>; rel="llms", </.well-known/agent-skills/index.json>; rel="agent-skills", </.well-known/mcp/server-card.json>; rel="mcp-server-card"');
+  
+  if (accept.includes('text/markdown')) {
+    return c.text(`# OpenMedQ API
+
+A 100% free, open-source medical exam preparation platform for NEET PG, FMGE, and INI-CET.
+
+## API Endpoints
+
+- **Get Question Pack**: \`GET /api/questions/pack\`
+- **Get Subject Pack**: \`GET /api/questions/subject-pack\`
+- **Custom Practice**: \`POST /api/questions/custom-practice\`
+- **Progress Sync**: \`GET/POST /api/progress/sync\`
+- **Leaderboard**: \`GET /api/leaderboard\`
+
+## Agent Discovery & Specifications
+
+- **API Catalog**: \`/.well-known/api-catalog\`
+- **OIDC Discovery**: \`/.well-known/openid-configuration\`
+- **OAuth Protected Resource**: \`/.well-known/oauth-protected-resource\`
+- **OAuth Authorization Server**: \`/.well-known/oauth-authorization-server\`
+- **MCP Server Card**: \`/.well-known/mcp/server-card.json\`
+- **Agent Skills**: \`/.well-known/agent-skills/index.json\`
+- **Agent Registration Guide**: \`/auth.md\`
+`, 200, {
+      'Content-Type': 'text/markdown; charset=utf-8',
+      'x-markdown-tokens': '2000'
+    });
+  }
+  
   return c.json({
     status: 'healthy',
     app: 'OpenMedQ Backend',
     platform: 'Cloudflare Workers',
   });
 })
+
+// Well-known endpoints for AI Agent Discovery
+
+.get('/.well-known/api-catalog', (c) => {
+  return c.text(JSON.stringify({
+    "linkset": [
+      {
+        "anchor": "https://api.openmedq.com/",
+        "service-desc": [
+          {
+            "href": "https://api.openmedq.com/doc",
+            "type": "application/openapi+json"
+          }
+        ],
+        "service-doc": [
+          {
+            "href": "https://github.com/Riso19/openmedq",
+            "type": "text/html"
+          }
+        ],
+        "status": [
+          {
+            "href": "https://api.openmedq.com/",
+            "type": "application/json"
+          }
+        ]
+      }
+    ]
+  }), 200, {
+    'Content-Type': 'application/linkset+json; charset=utf-8',
+    'Access-Control-Allow-Origin': '*'
+  });
+})
+
+.get('/.well-known/openid-configuration', (c) => {
+  return c.json({
+    "issuer": "https://clerk.openmedq.com",
+    "authorization_endpoint": "https://clerk.openmedq.com/oauth/authorize",
+    "token_endpoint": "https://clerk.openmedq.com/oauth/token",
+    "userinfo_endpoint": "https://clerk.openmedq.com/oauth/userinfo",
+    "jwks_uri": "https://clerk.openmedq.com/.well-known/jwks.json",
+    "response_types_supported": ["code", "token", "id_token"],
+    "subject_types_supported": ["public"],
+    "id_token_signing_alg_values_supported": ["RS256"]
+  }, 200, {
+    'Content-Type': 'application/json; charset=utf-8',
+    'Access-Control-Allow-Origin': '*'
+  });
+})
+
+.get('/.well-known/oauth-protected-resource', (c) => {
+  return c.json({
+    "resource": "https://api.openmedq.com/",
+    "authorization_servers": [
+      "https://clerk.openmedq.com"
+    ],
+    "scopes_supported": [
+      "read:progress",
+      "write:progress"
+    ],
+    "bearer_methods_supported": [
+      "header"
+    ]
+  }, 200, {
+    'Content-Type': 'application/json; charset=utf-8',
+    'Access-Control-Allow-Origin': '*'
+  });
+})
+
+.get('/.well-known/oauth-authorization-server', (c) => {
+  return c.json({
+    "issuer": "https://clerk.openmedq.com",
+    "authorization_endpoint": "https://clerk.openmedq.com/oauth/authorize",
+    "token_endpoint": "https://clerk.openmedq.com/oauth/token",
+    "userinfo_endpoint": "https://clerk.openmedq.com/oauth/userinfo",
+    "jwks_uri": "https://clerk.openmedq.com/.well-known/jwks.json",
+    "response_types_supported": ["code", "token", "id_token"],
+    "subject_types_supported": ["public"],
+    "id_token_signing_alg_values_supported": ["RS256"],
+    "agent_auth": {
+      "skill": "https://openmedq.com/auth.md",
+      "register_uri": "https://api.openmedq.com/api/agent/register",
+      "identity_types_supported": ["identity_assertion"],
+      "identity_assertion": {
+        "assertion_types_supported": ["urn:ietf:params:oauth:token-type:id-jag", "verified_email"]
+      },
+      "credential_types_supported": ["api_key"]
+    }
+  }, 200, {
+    'Content-Type': 'application/json; charset=utf-8',
+    'Access-Control-Allow-Origin': '*'
+  });
+})
+
+.get('/.well-known/mcp/server-card.json', (c) => {
+  return c.json({
+    "serverInfo": {
+      "name": "OpenMedQ MCP Server",
+      "version": "1.0.0"
+    },
+    "transport": {
+      "type": "sse",
+      "url": "https://api.openmedq.com/mcp"
+    },
+    "capabilities": {
+      "tools": true,
+      "resources": false,
+      "prompts": false
+    }
+  }, 200, {
+    'Content-Type': 'application/json; charset=utf-8',
+    'Access-Control-Allow-Origin': '*'
+  });
+})
+
+.get('/.well-known/agent-skills/index.json', (c) => {
+  return c.json({
+    "$schema": "https://schemas.agentskills.io/discovery/0.2.0/schema.json",
+    "skills": [
+      {
+        "name": "search-mcqs",
+        "type": "skill-md",
+        "description": "Search and retrieve high-yield medical multiple choice questions (MCQs) across 19 MBBS subjects.",
+        "url": "https://openmedq.com/.well-known/agent-skills/search-mcqs/SKILL.md",
+        "digest": "sha256:35d1da7e6ccf2120b4fe6106af0033e99c7648e3101b02c612746e8b59159493"
+      }
+    ]
+  }, 200, {
+    'Content-Type': 'application/json; charset=utf-8',
+    'Access-Control-Allow-Origin': '*'
+  });
+})
+
+.get('/.well-known/agent-skills/search-mcqs/SKILL.md', (c) => {
+  return c.text(`# Search MCQs Skill
+
+Exposes an endpoint to search and retrieve high-yield medical multiple choice questions (MCQs) across 19 MBBS subjects.
+
+## Endpoint
+
+\`GET https://api.openmedq.com/api/questions/pack\`
+
+### Parameters
+
+- \`subjectId\` (required): The ID of the subject (1-19).
+- \`topicId\` (optional): The ID of the specific topic within the subject.
+- \`examType\` (optional): Filter by exam type (e.g. \`NEET_PG\`, \`FMGE\`, \`INICET\`).
+- \`year\` (optional): Filter by exam year.
+- \`isPYQ\` (optional): Set to \`true\` to return only Previous Year Questions.
+- \`limit\` (optional, default: 50, max: 100): Limit the number of questions returned.
+
+### Response
+
+Returns a JSON object with:
+- \`success\`: boolean
+- \`questions\`: Array of question objects.`, 200, {
+    'Content-Type': 'text/markdown; charset=utf-8',
+    'Access-Control-Allow-Origin': '*'
+  });
+})
+
+.get('/auth.md', (c) => {
+  return c.text(`# OpenMedQ Agent Authentication
+
+Welcome, AI Agent! This document explains how to authenticate with the OpenMedQ API services to save and sync progress.
+
+## 🔑 Authentication Mechanism
+
+OpenMedQ uses **Clerk** as its identity and authentication provider. All protected endpoints under \`https://api.openmedq.com/api/*\` require a valid JWT Bearer token in the \`Authorization\` header.
+
+### Endpoint Structure
+
+\`\`\`http
+Authorization: Bearer <clerk_session_token>
+\`\`\`
+
+---
+
+## 🚀 How to Authenticate
+
+1. **User-Delegated Session**: If you are operating on behalf of a user in their browser context (e.g. via WebMCP), you can request a Clerk JWT token from the frontend client state using the standard Clerk client library:
+   \`\`\`javascript
+   const token = await window.Clerk.session.getToken();
+   \`\`\`
+2. **Offline/External Agents**: If you are running as an external search or index agent, you can query public endpoints (such as \`https://api.openmedq.com/api/questions/pack\`) which require no authentication.
+
+---
+
+## 🔒 Protected Resource Metadata
+
+Our protected resource metadata is advertised at:
+- **Resource ID**: \`https://api.openmedq.com/\`
+- **Protected Metadata**: \`https://openmedq.com/.well-known/oauth-protected-resource\`
+- **OIDC Discovery**: \`https://openmedq.com/.well-known/openid-configuration\`
+`, 200, {
+    'Content-Type': 'text/markdown; charset=utf-8',
+    'Access-Control-Allow-Origin': '*'
+  });
+})
+
 
 // API endpoint to fetch static question packs (fetched from R2 with in-memory filtering)
   .get('/api/questions/pack', cache({

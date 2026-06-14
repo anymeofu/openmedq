@@ -6,5 +6,8 @@
   "scopes_supported": [
     "read:progress",
     "write:progress"
+  ],
+  "bearer_methods_supported": [
+    "header"
   ]
 }

@@ -2,11 +2,11 @@
   "$schema": "https://schemas.agentskills.io/discovery/0.2.0/schema.json",
   "skills": [
     {
-      "name": "search_mcqs",
-      "type": "action",
+      "name": "search-mcqs",
+      "type": "skill-md",
       "description": "Search and retrieve high-yield medical multiple choice questions (MCQs) across 19 MBBS subjects.",
-      "url": "https://api.openmedq.com/api/questions/pack",
-      "sha256": "c47146d3056b3a57871d3a1b2c5c6f5918ae22c09cc1523cdb73379f7ad35f97"
+      "url": "https://openmedq.com/.well-known/agent-skills/search-mcqs/SKILL.md",
+      "digest": "sha256:35d1da7e6ccf2120b4fe6106af0033e99c7648e3101b02c612746e8b59159493"
     }
   ]
 }
