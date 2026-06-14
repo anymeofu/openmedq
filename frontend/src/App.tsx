@@ -19,13 +19,17 @@ import { Roadmap } from './pages/roadmap/Roadmap';
 import { DownloadPage } from './pages/download/DownloadPage';
 import { BlogList } from './pages/blog/BlogList';
 import { BlogPost } from './pages/blog/BlogPost';
+import { NotFound } from './pages/NotFound';
 
 import { useTheme } from './components/theme-provider';
 
-const getInitialView = (): 'landing' | 'auth' | 'custom_creator' | 'custom_practice' | 'dashboard' | 'stats' | 'leaderboard' | 'privacy_policy' | 'terms_conditions' | 'disclaimer' | 'dmca_policy' | 'contribute' | 'roadmap' | 'download' | 'blog' | 'blog_post' => {
+const getInitialView = (): 'landing' | 'auth' | 'custom_creator' | 'custom_practice' | 'dashboard' | 'stats' | 'leaderboard' | 'privacy_policy' | 'terms_conditions' | 'disclaimer' | 'dmca_policy' | 'contribute' | 'roadmap' | 'download' | 'blog' | 'blog_post' | 'not_found' => {
   const path = window.location.pathname.toLowerCase();
   const hash = window.location.hash.toLowerCase();
   
+  if (path === '/' || path === '') {
+    return 'landing';
+  }
   if (path === '/privacy' || path === '/privacy-policy' || hash === '#privacy' || hash === '#privacy-policy') {
     return 'privacy_policy';
   }
@@ -53,7 +57,21 @@ const getInitialView = (): 'landing' | 'auth' | 'custom_creator' | 'custom_pract
   if (path.startsWith('/blog/') && path.length > 6) {
     return 'blog_post';
   }
-  return 'landing';
+  
+  // Allowed app-routing paths
+  const allowedPaths = [
+    '/', '/privacy', '/privacy-policy', '/terms', '/terms-conditions', 
+    '/disclaimer', '/dmca', '/dmca-policy', '/contribute', '/roadmap', 
+    '/download', '/blog', '/dashboard', '/stats', '/leaderboard', '/practice', '/auth'
+  ];
+  if (allowedPaths.includes(path) || path.startsWith('/blog/')) {
+    if (path === '/dashboard') return 'dashboard';
+    if (path === '/stats') return 'stats';
+    if (path === '/leaderboard') return 'leaderboard';
+    if (path === '/auth') return 'auth';
+    return 'landing';
+  }
+  return 'not_found';
 };
 
 function App() {
@@ -108,7 +126,7 @@ function App() {
 
   const { isLoaded, isSignedIn, getToken } = useAuth();
   const { user } = useUser();
-  const [view, setView] = useState<'landing' | 'auth' | 'custom_creator' | 'custom_practice' | 'dashboard' | 'stats' | 'leaderboard' | 'privacy_policy' | 'terms_conditions' | 'disclaimer' | 'dmca_policy' | 'contribute' | 'roadmap' | 'download' | 'blog' | 'blog_post'>(getInitialView);
+  const [view, setView] = useState<'landing' | 'auth' | 'custom_creator' | 'custom_practice' | 'dashboard' | 'stats' | 'leaderboard' | 'privacy_policy' | 'terms_conditions' | 'disclaimer' | 'dmca_policy' | 'contribute' | 'roadmap' | 'download' | 'blog' | 'blog_post' | 'not_found'>(getInitialView);
   const [blogSlug, setBlogSlug] = useState<string>(() => {
     const path = window.location.pathname.toLowerCase();
     if (path.startsWith('/blog/') && path.length > 6) {
@@ -377,6 +395,10 @@ function App() {
         pageTitle = 'Sign In / Register - OpenMedQ';
         pageDescription = 'Create a free OpenMedQ account to synchronize your medical PG preparation progress across devices.';
         break;
+      case 'not_found':
+        pageTitle = 'Page Not Found - OpenMedQ';
+        pageDescription = 'The page you requested was not found on OpenMedQ.';
+        break;
     }
 
     document.title = pageTitle;
@@ -602,6 +624,17 @@ function App() {
 
   if (view === 'blog_post') {
     return <BlogPost slug={blogSlug} onBack={handleViewBlog} onBackToHome={handleBackToLanding} onStartPractice={startPracticeView} isDark={isDark} />;
+  }
+
+  if (view === 'not_found') {
+    return (
+      <NotFound
+        onBack={handleBackToLanding}
+        onGoToDashboard={() => setView('dashboard')}
+        onViewDownload={handleViewDownload}
+        onViewBlog={handleViewBlog}
+      />
+    );
   }
 
   if (view === 'auth') {

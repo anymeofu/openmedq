@@ -312,7 +312,7 @@ export function LandingPage({
       {/* HEADER */}
       <header className="sticky top-0 z-50 w-full bg-clay-canvas border-b border-clay-hairline py-4 px-6 md:px-12 flex items-center justify-between">
         <div className="flex items-center gap-3 group cursor-pointer" onClick={() => { setIsMobileMenuOpen(false); window.scrollTo({ top: 0, behavior: 'smooth' }); }}>
-          <img src={logoSrc} className="w-10 h-10 rounded-clay-md shadow-sm group-hover:scale-105 transition-transform duration-300 object-contain" alt="OpenMedQ Logo" />
+          <img src={logoSrc} width="40" height="40" className="w-10 h-10 rounded-clay-md shadow-sm group-hover:scale-105 transition-transform duration-300 object-contain" alt="OpenMedQ Logo" />
           <span className="text-xl font-bold tracking-tight text-clay-ink group-hover:text-clay-pink transition-colors duration-300">
             OpenMedQ
           </span>
@@ -494,6 +494,9 @@ export function LandingPage({
 
           {/* Headline */}
           <h1 className="font-rubik text-3xl sm:text-5xl md:text-[56px] leading-[1.1] md:leading-[1.05] font-medium text-clay-ink tracking-[-0.04em] mb-6 w-full">
+            <span className="block text-xs sm:text-sm md:text-base font-bold uppercase tracking-widest text-clay-pink mb-4">
+              Free Spaced Repetition NEET PG, FMGE & INI-CET Question Bank
+            </span>
             Your brain is not a sieve. The prep system is just broken.
           </h1>
 
@@ -533,6 +536,9 @@ export function LandingPage({
             <img 
               src="https://images.unsplash.com/photo-1584515979956-d9f6e5d09982?auto=format&fit=crop&w=800&q=80" 
               alt="Clinical Practice and Medical Study" 
+              width="800"
+              height="350"
+              fetchPriority="high"
               className="w-full h-[300px] md:h-[350px] object-cover rounded-clay-lg shadow-inner group-hover:scale-[1.02] transition-transform duration-500 ease-out" 
             />
           </div>
@@ -1411,7 +1417,7 @@ export function LandingPage({
         
         <div className="bg-clay-surface-soft rounded-clay-xl border border-clay-hairline p-6 sm:p-10 md:p-16 flex flex-col items-center shadow-sm relative">
           
-          <img src={logoSrc} className="w-12 h-12 rounded-clay-md shadow-sm mb-6 object-contain" alt="OpenMedQ Logo" />
+          <img src={logoSrc} width="48" height="48" className="w-12 h-12 rounded-clay-md shadow-sm mb-6 object-contain" alt="OpenMedQ Logo" />
 
           <h2 className="font-rubik text-2xl sm:text-3xl md:text-5xl font-medium tracking-[-0.04em] mb-6 text-clay-ink">
             Stop Paying. Start Mastering.
@@ -1446,7 +1452,7 @@ export function LandingPage({
           
           <div className="flex flex-col gap-4 max-w-xs text-left">
             <div className="flex items-center gap-3">
-              <img src={logoSrc} className="w-8 h-8 rounded-clay-md shadow-sm object-contain" alt="OpenMedQ Logo" />
+              <img src={logoSrc} width="32" height="32" className="w-8 h-8 rounded-clay-md shadow-sm object-contain" alt="OpenMedQ Logo" />
               <span className="font-bold text-lg text-clay-ink">OpenMedQ</span>
             </div>
             <p className="text-xs text-clay-muted leading-relaxed">

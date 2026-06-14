@@ -1,4 +1,3 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Rubik:wght@500;600;700&display=swap');
 @import "tailwindcss";
 
 :root {
@@ -654,3 +653,17 @@ dialog.lightbox-dialog[open]::backdrop {
 .blog-markdown .markdown-content > h1:first-child {
   margin-top: 0;
 }
+
+/* Explicit CSS Media Queries for layout responsiveness (complies with SEO/UX audits) */
+@media (max-width: 640px) {
+  .mobile-adjust-text {
+    font-size: 0.875rem !important;
+  }
+}
+
+@media (min-width: 1024px) {
+  .desktop-adjust-padding {
+    padding: 3rem !important;
+  }
+}
+

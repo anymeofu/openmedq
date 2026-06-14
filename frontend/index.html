@@ -5,8 +5,36 @@
     <link rel="icon" type="image/png" href="/logo.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="canonical" href="https://openmedq.com/" />
+    
+    <!-- Preload Hero Image for LCP Optimization -->
+    <link rel="preload" as="image" href="https://images.unsplash.com/photo-1584515979956-d9f6e5d09982?auto=format&fit=crop&w=800&q=80" fetchpriority="high" />
+    
+    <!-- Google Fonts Preconnect and Async Stylesheet -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Rubik:wght@500;600;700&display=swap" rel="stylesheet" />
+    
+    <!-- Canonical URL Redirect for www and http variations -->
+    <script>
+      (function() {
+        var hostname = window.location.hostname;
+        var protocol = window.location.protocol;
+        var isLocal = hostname.includes('localhost') || hostname.includes('127.0.0.1') || hostname.includes('.local');
+        if (!isLocal && (hostname === 'www.openmedq.com' || protocol === 'http:')) {
+          window.location.replace('https://openmedq.com' + window.location.pathname + window.location.search + window.location.hash);
+        }
+      })();
+    </script>
+
+    <!-- Google Analytics (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-H72F3S6J2H"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'G-H72F3S6J2H');
+    </script>
+
     <title>OpenMedQ - Free NEET PG, FMGE & INI-CET Prep</title>
     <meta name="description" content="OpenMedQ is a 100% free, student-built open-source active-recall spaced repetition study bank for NEET PG, FMGE, and INI-CET medical post-graduate preparation." />
     <meta name="keywords" content="NEET PG, FMGE, INI-CET, NEXT, medical PG exam, spaced repetition, FSRS, active recall, question bank, QBank, medical student, study tool, open source" />
