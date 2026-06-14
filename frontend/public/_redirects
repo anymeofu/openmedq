@@ -3,6 +3,25 @@
 /privacy-policy /privacy 301
 /terms-conditions /terms 301
 /dmca-policy /dmca 301
+
+# Static Assets and SEO Files (Force Bypass of SPA fallback)
+/assets/* /assets/:splat 200
+/sitemap.xml /sitemap.xml 200
+/robots.txt /robots.txt 200
+/ads.txt /ads.txt 200
+
+# Prerendered HTML Page Routes (Explicitly rewrite to their built index.html files)
+/blog /blog/index.html 200
+/blog/ /blog/index.html 200
+/blog/* /blog/:splat/index.html 200
+/roadmap /roadmap/index.html 200
+/download /download/index.html 200
+/contribute /contribute/index.html 200
+/privacy /privacy/index.html 200
+/terms /terms/index.html 200
+/disclaimer /disclaimer/index.html 200
+/dmca /dmca/index.html 200
+
 /.well-known/api-catalog /.well-known/api-catalog 200
 /.well-known/openid-configuration /.well-known/openid-configuration 200
 /.well-known/oauth-protected-resource /.well-known/oauth-protected-resource 200

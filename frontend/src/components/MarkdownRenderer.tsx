@@ -27,6 +27,9 @@ export function MarkdownRenderer({ content, inline = false }: MarkdownRendererPr
       // Parse markdown to HTML using marked
       let html = marked.parse(processed, { async: false }) as string;
       
+      // Inject loading="lazy" into img tags if they don't have it already
+      html = html.replace(/<img\s(?![^>]*loading=)/g, '<img loading="lazy" ');
+
       // Sanitize parsed HTML using DOMPurify to prevent XSS
       const cleanHtml = DOMPurify.sanitize(html);
 

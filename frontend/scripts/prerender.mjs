@@ -58,30 +58,55 @@ const routes = [
       </header>
       <main>
         <h1>Free NEET PG, FMGE & INI-CET Preparation</h1>
-        <p>190,000+ peer-reviewed MCQs. FSRS v6 spaced repetition. Offline-first. 100% free, forever.</p>
+        <p><strong>190,000+ peer-reviewed MCQs. FSRS v6 spaced repetition. Offline-first. 100% free, forever.</strong></p>
         <p>OpenMedQ is the open-source medical exam preparation platform built by a 3rd year medical student for the Indian PG medical community. Practice active-recall MCQs across all 19 MBBS subjects with a scientifically-backed spaced repetition scheduler.</p>
+        
         <section>
-          <h2>Features</h2>
+          <h2>The OpenMedQ Manifesto: Unlocking Medical Education</h2>
+          <p>Medical school is hard enough. The exhaustion of night duties, the constant clinical rotations, and the imposter syndrome are heavy burdens. Yet, commercial prep platforms treat medical students as cash cows. They block standard clinical explanations behind massive paywalls, lock you out of your own bookmarks the moment your plan expires, and flood your phone with aggressive sales calls. We refuse to be locked out of our own education. OpenMedQ is a student-built alternative. It has zero subscription fees, zero corporate boards, and is built by a fellow peer who understands what clinical study looks like in the trenches.</p>
+        </section>
+
+        <section>
+          <h2>Core Features of the Spaced Repetition Practice Suite</h2>
           <ul>
-            <li>190,000+ clinical MCQs across Anatomy, Physiology, Biochemistry, Pathology, Pharmacology, Microbiology, and 13 more subjects</li>
-            <li>FSRS v6 spaced repetition algorithm for optimized long-term retention</li>
-            <li>Offline-first: study in hospital wards, hostels, and basements with zero internet</li>
-            <li>Custom practice modules with subject and topic filtering</li>
-            <li>Weak spot targeting for concepts with repeated memory slips</li>
-            <li>Progress tracking with streaks, XP, and monthly leaderboards</li>
+            <li><strong>190,000+ Clinical MCQs</strong>: Practice high-yield, clinical case-based questions across all 19 MBBS subjects, peer-vetted to exclude outdated guidelines and formatted to mirror modern PG medical entrance patterns.</li>
+            <li><strong>FSRS v6 Optimization Engine</strong>: Integrates the state-of-the-art Free Spaced Repetition Scheduler algorithm directly on the client to dynamically calculate retrievability, stability, and difficulty, optimizing your study intervals.</li>
+            <li><strong>Offline-First Architecture</strong>: Question packs are locally cached using Dexie IndexedDB, enabling you to solve questions, view high-yield explanations, and track reviews in hospital wards, elevators, or basements with zero internet.</li>
+            <li><strong>Custom Practice Modules</strong>: Create customized revision sessions filtered by academic year phase, subject, specific topics, and question status (Unattempted, Incorrect, Correct, Bookmarked).</li>
+            <li><strong>Weak Spot Isolation</strong>: Detects concepts with repeated memory slips (3+ slips) to isolate and schedule them for focused active recall review.</li>
+            <li><strong>Gamified Learning Loops</strong>: Track your progress with study streaks, experience points (XP), levels, and monthly dopamine leaderboards.</li>
           </ul>
         </section>
+
+        <section>
+          <h2>19 MBBS Subjects Covered</h2>
+          <p>Practice customized modules covering all subjects from pre-clinical to final-year rotations:</p>
+          <ul>
+            <li><strong>Pre-Clinical Phase (1st Year)</strong>: Anatomy, Physiology, Biochemistry</li>
+            <li><strong>Para-Clinical Phase (2nd & 3rd Year)</strong>: Pathology, Microbiology, Pharmacology, Forensic Medicine, Social and Preventive Medicine (SPM)</li>
+            <li><strong>Short Subjects</strong>: Ophthalmology, Otorhinolaryngology (ENT), Orthopedics, Dermatology, Psychiatry, Radiology, Anesthesiology</li>
+            <li><strong>Clinical Core (Final Year)</strong>: General Medicine, General Surgery, Obstetrics & Gynecology (OBGY), Pediatrics</li>
+          </ul>
+        </section>
+
+        <section>
+          <h2>Why the FSRS Algorithm Outperforms Traditional SM-2/Anki</h2>
+          <p>Traditional spaced repetition engines (like the SM-2 algorithm used in older versions of Anki) rely on simple fixed multipliers. This often leads to massive card build-ups (review backlogs) and rigid study intervals that do not adjust to your actual recall rate. FSRS (Free Spaced Repetition Scheduler) v6 uses modern optimization curves based on three key metrics: Stability (how long you will remember the card), Difficulty (how complex the concept is), and Retrievability (the probability of successfully recalling the information right now). By grading your responses (Again, Hard, Good, Easy), FSRS dynamically adapts the intervals so you study less while retaining more information long-term.</p>
+        </section>
+
         <section>
           <h2>Frequently Asked Questions</h2>
           <dl>
             <dt>How is OpenMedQ 100% free?</dt>
-            <dd>There is no catch. It runs local-first in your browser with practically zero server costs.</dd>
+            <dd>There is no catch. It runs local-first in your browser with practically zero server costs. Static question packs are served directly from Cloudflare R2, bypassing expensive database queries.</dd>
             <dt>Are questions aligned with NEET PG, FMGE, and INI-CET patterns?</dt>
-            <dd>Yes. All questions are from the peer-reviewed MedMCQA dataset with 186,000+ verified medical prep questions.</dd>
+            <dd>Yes. All questions are compiled from the open MedMCQA clinical research dataset (originally published on Hugging Face by OpenLifeScienceAI), consisting of over 186,000 verified medical prep questions.</dd>
             <dt>Can I study offline?</dt>
-            <dd>Yes. Question packs cache locally. Study in wards, lifts, or basements with zero signal.</dd>
+            <dd>Yes. OpenMedQ is designed to be Local-First. When you load a subject pack, it caches locally. You can solve questions, view detailed explanations, and track your revision shelf life in clinical wards, lifts, or basements with zero cellular signal.</dd>
             <dt>How does FSRS differ from Anki?</dt>
-            <dd>FSRS v6 dynamically calculates Retrievability, Stability, and Difficulty for superior long-term retention with fewer reviews.</dd>
+            <dd>FSRS v6 dynamically calculates Retrievability, Stability, and Difficulty for superior long-term retention with fewer reviews compared to the legacy SM-2 algorithm.</dd>
+            <dt>How can I submit corrections or contribute?</dt>
+            <dd>OpenMedQ is a peer-supported open-source platform. If you find a typo, an outdated clinical guideline, or a wrong reference explanation, you can click the GitHub link in the footer to submit corrections or open a pull request directly.</dd>
           </dl>
         </section>
       </main>
@@ -97,7 +122,7 @@ const routes = [
           <a href="/disclaimer">Legal Disclaimer</a>
           <a href="/dmca">DMCA & Copyright</a>
         </nav>
-        <p>&copy; 2025 OpenMedQ. Open-source under MIT license.</p>
+        <p>&copy; 2026 OpenMedQ. Open-source under MIT license.</p>
       </footer>
     `
   },
@@ -233,6 +258,8 @@ for (const post of blogPosts) {
       .replace(/~([^~]+)~/g, '<sub>$1</sub>')
       .replace(/\^([^^]+)\^/g, '<sup>$1</sup>');
     postHtmlContent = marked.parse(processed, { async: false });
+    // Add lazy loading to images
+    postHtmlContent = postHtmlContent.replace(/<img\s(?![^>]*loading=)/g, '<img loading="lazy" ');
   } catch (e) {
     console.warn(`⚠️  Could not read markdown for post ${post.slug}, using description fallback:`, e.message);
     postHtmlContent = `<p>${post.description}</p>`;
@@ -336,6 +363,12 @@ function renderRoute(template, route) {
   html = html.replace(
     '<div id="root"></div>',
     `<div id="root">${content}</div>`
+  );
+
+  // Ensure the main script has defer for strict SEO compliance
+  html = html.replace(
+    /<script type="module" crossorigin src="([^"]*)"><\/script>/,
+    '<script type="module" crossorigin defer src="$1"></script>'
   );
 
   return html;

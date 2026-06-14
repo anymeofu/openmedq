@@ -103,7 +103,25 @@
     </script>
   </head>
   <body>
+    <noscript>
+      <div style="padding: 2rem; text-align: center; font-family: system-ui, -apple-system, sans-serif; background: #fffaf0; color: #0a0a0a; min-height: 100vh; display: flex; flex-direction: column; justify-content: center; align-items: center;">
+        <h2 style="font-family: Rubik, sans-serif; font-size: 1.75rem; margin-bottom: 1rem; letter-spacing: -0.04em;">JavaScript Required</h2>
+        <p style="font-size: 1rem; margin-bottom: 1.5rem; max-width: 500px; line-height: 1.5; color: #6a6a6a;">
+          OpenMedQ requires JavaScript to run its active-recall practice suite, FSRS spaced repetition scheduling, and study analytics.
+        </p>
+        <p style="font-size: 0.875rem; margin-bottom: 2rem; max-width: 400px; color: #8a8a8a;">
+          Please enable JavaScript in your browser settings to practice 190,000+ NEET PG, FMGE, and INI-CET MCQs for free.
+        </p>
+        <hr style="border: 0; border-top: 1px solid #e5e5e5; width: 100%; max-width: 200px; margin-bottom: 2rem;" />
+        <nav style="display: flex; gap: 1.5rem;">
+          <a href="/blog" style="color: #ff4d8b; font-weight: 600; text-decoration: none; font-size: 0.875rem;">Read our Blog</a>
+          <a href="/roadmap" style="color: #ff4d8b; font-weight: 600; text-decoration: none; font-size: 0.875rem;">Product Roadmap</a>
+          <a href="/download" style="color: #ff4d8b; font-weight: 600; text-decoration: none; font-size: 0.875rem;">Download App</a>
+        </nav>
+      </div>
+    </noscript>
     <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
+    <script type="module" defer src="/src/main.tsx"></script>
   </body>
 </html>
+
