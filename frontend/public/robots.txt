@@ -1,5 +1,8 @@
 User-agent: *
 Allow: /
 Disallow: /dashboard
+Disallow: /auth
+Disallow: /stats
+Disallow: /leaderboard
 
 Sitemap: https://openmedq.com/sitemap.xml

@@ -1,0 +1,32 @@
+[
+  {
+    "slug": "neet-pg-2026-preparation-strategy",
+    "title": "NEET PG 2026 Preparation Strategy: An Evidence-Based Study Plan",
+    "description": "A complete, evidence-based preparation strategy for NEET PG 2026 using active recall, spaced repetition, and the FSRS algorithm. Built by a medical student, for medical students.",
+    "author": "OpenMedQ Team",
+    "date": "2026-06-14",
+    "tags": ["NEET PG", "Study Strategy", "Spaced Repetition", "FSRS", "Exam Preparation"],
+    "readingTime": 14,
+    "category": "exam-strategy"
+  },
+  {
+    "slug": "spaced-repetition-science-for-medical-students",
+    "title": "The Science of Spaced Repetition: Why It Works for Medical Students",
+    "description": "Understand the cognitive science behind spaced repetition and how the FSRS algorithm helps medical students retain clinical knowledge more efficiently than traditional study methods.",
+    "author": "OpenMedQ Team",
+    "date": "2026-06-10",
+    "tags": ["Spaced Repetition", "FSRS", "Active Recall", "Cognitive Science", "Study Techniques"],
+    "readingTime": 10,
+    "category": "study-science"
+  },
+  {
+    "slug": "why-openmedq-is-free",
+    "title": "Why OpenMedQ Is 100% Free (And Always Will Be)",
+    "description": "The story behind OpenMedQ: why a 3rd year medical student built a free, open-source medical exam preparation platform and how it stays free without ads or paywalls.",
+    "author": "OpenMedQ Team",
+    "date": "2026-06-07",
+    "tags": ["OpenMedQ", "Open Source", "Medical Education", "Free Resources"],
+    "readingTime": 7,
+    "category": "brand"
+  }
+]

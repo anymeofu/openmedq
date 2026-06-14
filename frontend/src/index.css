@@ -534,12 +534,15 @@ dialog.lightbox-dialog[open]::backdrop {
 }
 
 /* Hide Clerk Branding */
+/* TODO: Hiding Clerk elements is allowed only after confirming the plan or upgrading. */
+/*
 .cl-internal-180g7wz,
 .cl-internal-w583pr,
 .cl-footer a[href*="clerk.com"],
 .cl-footer [class*="internal"] {
   display: none !important;
 }
+*/
 
 /* Invert Apple logo in dark mode for visibility */
 .dark .cl-socialButtonsProviderIcon__apple {
@@ -551,4 +554,103 @@ dialog.lightbox-dialog[open]::backdrop {
   color: var(--clay-ink) !important;
 }
 
+/* ================================================
+   Blog Article Typography
+   Scoped under .blog-markdown to avoid conflicting
+   with MCQ markdown rendering sizes
+   ================================================ */
+.blog-markdown.markdown-content h1,
+.blog-markdown .markdown-content h1 {
+  font-family: 'Rubik', sans-serif;
+  font-weight: 600;
+  color: var(--clay-ink);
+  letter-spacing: -0.02em;
+  font-size: 1.875rem;
+  margin-top: 2.5rem;
+  margin-bottom: 0.75rem;
+  text-align: left;
+}
 
+.blog-markdown.markdown-content h2,
+.blog-markdown .markdown-content h2 {
+  font-family: 'Rubik', sans-serif;
+  font-weight: 600;
+  color: var(--clay-ink);
+  letter-spacing: -0.02em;
+  font-size: 1.5rem;
+  margin-top: 2rem;
+  margin-bottom: 0.75rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid var(--clay-hairline);
+}
+
+.blog-markdown.markdown-content h3,
+.blog-markdown .markdown-content h3 {
+  font-family: 'Rubik', sans-serif;
+  font-weight: 600;
+  color: var(--clay-ink);
+  letter-spacing: -0.01em;
+  font-size: 1.25rem;
+  margin-top: 1.75rem;
+  margin-bottom: 0.5rem;
+}
+
+.blog-markdown.markdown-content p,
+.blog-markdown .markdown-content p {
+  color: var(--clay-body);
+  font-family: 'Inter', sans-serif;
+  line-height: 1.75;
+  margin-bottom: 1.25rem;
+}
+
+.blog-markdown.markdown-content table,
+.blog-markdown .markdown-content table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1.5rem 0;
+  font-size: 0.875rem;
+}
+
+.blog-markdown.markdown-content th,
+.blog-markdown .markdown-content th {
+  background-color: var(--clay-surface-soft);
+  font-weight: 600;
+  text-align: left;
+  padding: 0.75rem;
+  border-bottom: 2px solid var(--clay-hairline);
+}
+
+.blog-markdown.markdown-content td,
+.blog-markdown .markdown-content td {
+  padding: 0.75rem;
+  border-bottom: 1px solid var(--clay-hairline);
+}
+
+.blog-markdown.markdown-content blockquote,
+.blog-markdown .markdown-content blockquote {
+  border-left: 3px solid var(--clay-pink);
+  background-color: var(--clay-surface-soft);
+  padding: 1rem 1.25rem;
+  margin: 1.5rem 0;
+  border-radius: 0 var(--radius-clay-md) var(--radius-clay-md) 0;
+}
+
+.blog-markdown.markdown-content blockquote p,
+.blog-markdown .markdown-content blockquote p {
+  margin-bottom: 0;
+}
+
+.blog-markdown.markdown-content img,
+.blog-markdown .markdown-content img {
+  max-width: 100%;
+  height: auto;
+  border-radius: var(--radius-clay-md);
+  border: 1px solid var(--clay-hairline);
+  margin: 1rem 0;
+}
+
+/* First h1 in blog article (rendered from markdown) should have no top margin */
+.blog-markdown.markdown-content > h1:first-child,
+.blog-markdown .markdown-content > h1:first-child {
+  margin-top: 0;
+}

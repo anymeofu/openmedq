@@ -17,10 +17,12 @@ import { DMCAPolicy } from './pages/legal/DMCAPolicy';
 import { Contribute } from './pages/contribute/Contribute';
 import { Roadmap } from './pages/roadmap/Roadmap';
 import { DownloadPage } from './pages/download/DownloadPage';
+import { BlogList } from './pages/blog/BlogList';
+import { BlogPost } from './pages/blog/BlogPost';
 
 import { useTheme } from './components/theme-provider';
 
-const getInitialView = (): 'landing' | 'auth' | 'custom_creator' | 'custom_practice' | 'dashboard' | 'stats' | 'leaderboard' | 'privacy_policy' | 'terms_conditions' | 'disclaimer' | 'dmca_policy' | 'contribute' | 'roadmap' | 'download' => {
+const getInitialView = (): 'landing' | 'auth' | 'custom_creator' | 'custom_practice' | 'dashboard' | 'stats' | 'leaderboard' | 'privacy_policy' | 'terms_conditions' | 'disclaimer' | 'dmca_policy' | 'contribute' | 'roadmap' | 'download' | 'blog' | 'blog_post' => {
   const path = window.location.pathname.toLowerCase();
   const hash = window.location.hash.toLowerCase();
   
@@ -44,6 +46,12 @@ const getInitialView = (): 'landing' | 'auth' | 'custom_creator' | 'custom_pract
   }
   if (path === '/download' || hash === '#download') {
     return 'download';
+  }
+  if (path === '/blog' || hash === '#blog') {
+    return 'blog';
+  }
+  if (path.startsWith('/blog/') && path.length > 6) {
+    return 'blog_post';
   }
   return 'landing';
 };
@@ -100,7 +108,14 @@ function App() {
 
   const { isLoaded, isSignedIn, getToken } = useAuth();
   const { user } = useUser();
-  const [view, setView] = useState<'landing' | 'auth' | 'custom_creator' | 'custom_practice' | 'dashboard' | 'stats' | 'leaderboard' | 'privacy_policy' | 'terms_conditions' | 'disclaimer' | 'dmca_policy' | 'contribute' | 'roadmap' | 'download'>(getInitialView);
+  const [view, setView] = useState<'landing' | 'auth' | 'custom_creator' | 'custom_practice' | 'dashboard' | 'stats' | 'leaderboard' | 'privacy_policy' | 'terms_conditions' | 'disclaimer' | 'dmca_policy' | 'contribute' | 'roadmap' | 'download' | 'blog' | 'blog_post'>(getInitialView);
+  const [blogSlug, setBlogSlug] = useState<string>(() => {
+    const path = window.location.pathname.toLowerCase();
+    if (path.startsWith('/blog/') && path.length > 6) {
+      return path.slice(6).replace(/\/$/, '');
+    }
+    return '';
+  });
   const viewRef = useRef(view);
   viewRef.current = view;
 
@@ -149,7 +164,12 @@ function App() {
         setView('roadmap');
       } else if (path === '/download' || hash === '#download') {
         setView('download');
-      } else if (path === '/' && (viewRef.current === 'privacy_policy' || viewRef.current === 'terms_conditions' || viewRef.current === 'disclaimer' || viewRef.current === 'dmca_policy' || viewRef.current === 'contribute' || viewRef.current === 'roadmap' || viewRef.current === 'download')) {
+      } else if (path === '/blog' || hash === '#blog') {
+        setView('blog');
+      } else if (path.startsWith('/blog/') && path.length > 6) {
+        setBlogSlug(path.slice(6).replace(/\/$/, ''));
+        setView('blog_post');
+      } else if (path === '/' && (viewRef.current === 'privacy_policy' || viewRef.current === 'terms_conditions' || viewRef.current === 'disclaimer' || viewRef.current === 'dmca_policy' || viewRef.current === 'contribute' || viewRef.current === 'roadmap' || viewRef.current === 'download' || viewRef.current === 'blog' || viewRef.current === 'blog_post')) {
         setView('landing');
       }
     };
@@ -164,7 +184,9 @@ function App() {
 
   // Dynamic title, description, canonical and social preview meta tag updater
   useEffect(() => {
-    const canonicalUrl = `${window.location.origin}${window.location.pathname}${window.location.search}${window.location.hash}`;
+    const canonicalUrl = window.location.pathname === '/'
+      ? `${window.location.origin}/`
+      : `${window.location.origin}${window.location.pathname}`.replace(/\/$/, '');
     
     // Update or create canonical link tag
     let canonicalLink = document.querySelector("link[rel='canonical']");
@@ -185,7 +207,7 @@ function App() {
     ogUrl.setAttribute('content', canonicalUrl);
 
     // Update or create Twitter URL tag
-    let twitterUrl = document.querySelector("meta[property='twitter:url']") || document.querySelector("meta[name='twitter:url']");
+    let twitterUrl = document.querySelector("meta[name='twitter:url']") || document.querySelector("meta[property='twitter:url']");
     if (!twitterUrl) {
       twitterUrl = document.createElement('meta');
       twitterUrl.setAttribute('name', 'twitter:url');
@@ -196,11 +218,11 @@ function App() {
     // Update preview images
     const ogImage = document.querySelector("meta[property='og:image']");
     if (ogImage) {
-      ogImage.setAttribute('content', `${window.location.origin}/logo.png`);
+      ogImage.setAttribute('content', `${window.location.origin}/og-preview.png`);
     }
-    const twitterImage = document.querySelector("meta[property='twitter:image']") || document.querySelector("meta[name='twitter:image']");
+    const twitterImage = document.querySelector("meta[name='twitter:image']") || document.querySelector("meta[property='twitter:image']");
     if (twitterImage) {
-      twitterImage.setAttribute('content', `${window.location.origin}/logo.png`);
+      twitterImage.setAttribute('content', `${window.location.origin}/og-preview.png`);
     }
 
     // Dynamic Title and Description mapping
@@ -236,6 +258,16 @@ function App() {
         pageTitle = 'Download OpenMedQ Android APK - Offline Study App';
         pageDescription = "Download the latest version of OpenMedQ's mobile app APK to practice spaced repetition flashcards offline on your Android device.";
         break;
+      case 'blog':
+        pageTitle = 'Blog - OpenMedQ | Medical Exam Preparation Insights';
+        pageDescription = 'Evidence-based study strategies, exam preparation guides, and insights into spaced repetition science for NEET PG, FMGE, and INI-CET.';
+        break;
+      case 'blog_post':
+        // Title is set dynamically by BlogPost component via JSON-LD injection
+        // but we set a sensible default here
+        pageTitle = 'Blog - OpenMedQ';
+        pageDescription = 'Read evidence-based study strategies and medical exam preparation guides on the OpenMedQ blog.';
+        break;
       case 'dashboard':
         pageTitle = 'Study Dashboard - OpenMedQ';
         pageDescription = 'Access your spaced repetition practice modules, view streaks, and track active-recall medical exam preparation metrics.';
@@ -266,29 +298,29 @@ function App() {
     descMeta.setAttribute('content', pageDescription);
 
     // Update OG description tag
-    let ogDesc = document.querySelector("meta[property='og:description']");
+    const ogDesc = document.querySelector("meta[property='og:description']");
     if (ogDesc) {
       ogDesc.setAttribute('content', pageDescription);
     }
 
     // Update Twitter description tag
-    let twitterDesc = document.querySelector("meta[name='twitter:description']") || document.querySelector("meta[property='twitter:description']");
+    const twitterDesc = document.querySelector("meta[name='twitter:description']");
     if (twitterDesc) {
       twitterDesc.setAttribute('content', pageDescription);
     }
 
     // Update OG title tag
-    let ogTitle = document.querySelector("meta[property='og:title']");
+    const ogTitle = document.querySelector("meta[property='og:title']");
     if (ogTitle) {
       ogTitle.setAttribute('content', pageTitle);
     }
 
     // Update Twitter title tag
-    let twitterTitle = document.querySelector("meta[name='twitter:title']") || document.querySelector("meta[property='twitter:title']");
+    const twitterTitle = document.querySelector("meta[name='twitter:title']");
     if (twitterTitle) {
       twitterTitle.setAttribute('content', pageTitle);
     }
-  }, [view]);
+  }, [view, blogSlug]);
 
   const handleBackToLanding = () => {
     window.location.hash = '';
@@ -412,6 +444,19 @@ function App() {
     setView('download');
   }, []);
 
+  const handleViewBlog = useCallback(() => {
+    window.history.pushState(null, '', '/blog');
+    setView('blog');
+    window.scrollTo({ top: 0 });
+  }, []);
+
+  const handleViewBlogPost = useCallback((slug: string) => {
+    window.history.pushState(null, '', `/blog/${slug}`);
+    setBlogSlug(slug);
+    setView('blog_post');
+    window.scrollTo({ top: 0 });
+  }, []);
+
   if (view === 'landing') {
     return (
       <LandingPage 
@@ -424,6 +469,7 @@ function App() {
         onViewContribute={handleViewContribute}
         onViewRoadmap={handleViewRoadmap}
         onViewDownload={handleViewDownload}
+        onViewBlog={handleViewBlog}
         isDark={isDark}
       />
     );
@@ -455,6 +501,14 @@ function App() {
 
   if (view === 'download') {
     return <DownloadPage onBack={handleBackToLanding} />;
+  }
+
+  if (view === 'blog') {
+    return <BlogList onBack={handleBackToLanding} onViewPost={handleViewBlogPost} isDark={isDark} />;
+  }
+
+  if (view === 'blog_post') {
+    return <BlogPost slug={blogSlug} onBack={handleViewBlog} onBackToHome={handleBackToLanding} onStartPractice={startPracticeView} isDark={isDark} />;
   }
 
   if (view === 'auth') {

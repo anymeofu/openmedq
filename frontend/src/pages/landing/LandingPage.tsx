@@ -84,6 +84,7 @@ export function LandingPage({
   onViewContribute,
   onViewRoadmap,
   onViewDownload,
+  onViewBlog,
   isDark = false
 }: { 
   onStartPractice: () => void; 
@@ -95,6 +96,7 @@ export function LandingPage({
   onViewContribute: () => void;
   onViewRoadmap: () => void;
   onViewDownload: () => void;
+  onViewBlog: () => void;
   isDark?: boolean;
 }) {
   const logoSrc = isDark ? '/logo-dark.png' : '/logo-light.png';
@@ -278,6 +280,32 @@ export function LandingPage({
     }
   ];
 
+  // Inject FAQPage JSON-LD structured data for semantic understanding
+  useEffect(() => {
+    const faqSchema = {
+      '@context': 'https://schema.org',
+      '@type': 'FAQPage',
+      'mainEntity': faqs.map(faq => ({
+        '@type': 'Question',
+        'name': faq.q,
+        'acceptedAnswer': {
+          '@type': 'Answer',
+          'text': faq.a
+        }
+      }))
+    };
+
+    const script = document.createElement('script');
+    script.type = 'application/ld+json';
+    script.id = 'faq-schema';
+    script.textContent = JSON.stringify(faqSchema);
+    document.head.appendChild(script);
+
+    return () => {
+      document.getElementById('faq-schema')?.remove();
+    };
+  }, []);
+
   return (
     <div className="min-h-screen bg-clay-canvas text-clay-ink flex flex-col font-sans selection:bg-clay-pink/20 selection:text-clay-pink relative overflow-x-hidden">
       
@@ -291,9 +319,10 @@ export function LandingPage({
         </div>
 
         <nav className="hidden md:flex items-center gap-8 text-sm font-semibold text-clay-muted">
-          <button onClick={onViewRoadmap} className="hover:text-clay-ink transition-colors duration-200 bg-transparent border-0 p-0 font-semibold text-sm cursor-pointer">Roadmap</button>
-          <button onClick={onViewContribute} className="hover:text-clay-ink transition-colors duration-200 bg-transparent border-0 p-0 font-semibold text-sm cursor-pointer">Contribute</button>
-          <button onClick={onViewDownload} className="hover:text-clay-ink transition-colors duration-200 bg-transparent border-0 p-0 font-semibold text-sm cursor-pointer">Download App</button>
+          <a href="/blog" onClick={(e) => { e.preventDefault(); onViewBlog(); }} className="hover:text-clay-ink transition-colors duration-200 font-semibold text-sm cursor-pointer">Blog</a>
+          <a href="/roadmap" onClick={(e) => { e.preventDefault(); onViewRoadmap(); }} className="hover:text-clay-ink transition-colors duration-200 font-semibold text-sm cursor-pointer">Roadmap</a>
+          <a href="/contribute" onClick={(e) => { e.preventDefault(); onViewContribute(); }} className="hover:text-clay-ink transition-colors duration-200 font-semibold text-sm cursor-pointer">Contribute</a>
+          <a href="/download" onClick={(e) => { e.preventDefault(); onViewDownload(); }} className="hover:text-clay-ink transition-colors duration-200 font-semibold text-sm cursor-pointer">Download App</a>
         </nav>
 
         {/* Desktop actions */}
@@ -352,6 +381,15 @@ export function LandingPage({
       {isMobileMenuOpen && (
         <div className="md:hidden fixed inset-x-0 top-[73px] bottom-0 bg-clay-canvas/95 backdrop-blur-md z-40 border-t border-clay-hairline p-6 pb-10 flex flex-col justify-between overflow-y-auto scrollbar-none animate-[fadeIn_0.2s_ease-out]">
           <nav className="flex flex-col gap-6 text-base font-semibold text-clay-ink text-left">
+            <button 
+              onClick={() => { 
+                setIsMobileMenuOpen(false); 
+                onViewBlog(); 
+              }} 
+              className="py-2 border-b border-clay-hairline hover:text-clay-pink text-left bg-transparent border-0 p-0 font-semibold text-base cursor-pointer"
+            >
+              Blog
+            </button>
             <button 
               onClick={() => { 
                 setIsMobileMenuOpen(false); 
@@ -435,7 +473,8 @@ export function LandingPage({
         </div>
       )}
 
-      {/* HERO SECTION */}
+      {/* MAIN CONTENT */}
+      <main>
       <section className="relative py-12 md:py-24 px-6 md:px-12 max-w-7xl mx-auto w-full z-20 flex flex-col lg:flex-row items-center gap-10 md:gap-16">
         
         {/* Left Side: Copywriting & Actions */}
@@ -1387,6 +1426,8 @@ export function LandingPage({
         </div>
       </section>
 
+      </main>
+
       {/* FOOTER */}
       <footer className="mt-auto bg-clay-surface-soft border-t border-clay-hairline pt-16 pb-10 px-6 md:px-12 text-clay-body relative z-20">
         
@@ -1405,7 +1446,7 @@ export function LandingPage({
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-8 md:gap-16 text-left">
             <div className="flex flex-col gap-3">
               <span className="text-xs font-bold uppercase tracking-wider text-clay-ink">App</span>
-              <button onClick={onViewDownload} className="text-xs text-clay-muted hover:text-clay-ink transition-colors text-left bg-transparent border-0 p-0 cursor-pointer">Download Mobile App</button>
+              <a href="/download" onClick={(e) => { e.preventDefault(); onViewDownload(); }} className="text-xs text-clay-muted hover:text-clay-ink transition-colors cursor-pointer">Download Mobile App</a>
               <a href="#sandbox" className="text-xs text-clay-muted hover:text-clay-ink transition-colors">Sandbox MCQ</a>
               <a href="#manifesto" className="text-xs text-clay-muted hover:text-clay-ink transition-colors">Manifesto</a>
               <a href="#features" className="text-xs text-clay-muted hover:text-clay-ink transition-colors">Features</a>
@@ -1415,17 +1456,18 @@ export function LandingPage({
 
             <div className="flex flex-col gap-3">
               <span className="text-xs font-bold uppercase tracking-wider text-clay-ink">Community & Roadmap</span>
-              <button onClick={onViewRoadmap} className="text-xs text-clay-muted hover:text-clay-ink transition-colors text-left bg-transparent border-0 p-0 cursor-pointer">Product Roadmap</button>
-              <button onClick={onViewContribute} className="text-xs text-clay-muted hover:text-clay-ink transition-colors text-left bg-transparent border-0 p-0 cursor-pointer">Submit Corrections & Contribute</button>
+              <a href="/blog" onClick={(e) => { e.preventDefault(); onViewBlog(); }} className="text-xs text-clay-muted hover:text-clay-ink transition-colors cursor-pointer">Blog</a>
+              <a href="/roadmap" onClick={(e) => { e.preventDefault(); onViewRoadmap(); }} className="text-xs text-clay-muted hover:text-clay-ink transition-colors cursor-pointer">Product Roadmap</a>
+              <a href="/contribute" onClick={(e) => { e.preventDefault(); onViewContribute(); }} className="text-xs text-clay-muted hover:text-clay-ink transition-colors cursor-pointer">Submit Corrections & Contribute</a>
               <a href="https://github.com/Riso19/openmedq" target="_blank" rel="noopener noreferrer" className="text-xs text-clay-muted hover:text-clay-ink transition-colors">GitHub Repository</a>
             </div>
 
             <div className="flex flex-col gap-3">
                <span className="text-xs font-bold uppercase tracking-wider text-clay-ink">Legal</span>
-               <button onClick={onViewTerms} className="text-xs text-clay-muted hover:text-clay-ink transition-colors text-left bg-transparent border-0 p-0 cursor-pointer">Terms & Conditions</button>
-               <button onClick={onViewPrivacy} className="text-xs text-clay-muted hover:text-clay-ink transition-colors text-left bg-transparent border-0 p-0 cursor-pointer">Privacy Policy</button>
-               <button onClick={onViewDisclaimer} className="text-xs text-clay-muted hover:text-clay-ink transition-colors text-left bg-transparent border-0 p-0 cursor-pointer">Legal Disclaimer</button>
-               <button onClick={onViewDMCA} className="text-xs text-clay-muted hover:text-clay-ink transition-colors text-left bg-transparent border-0 p-0 cursor-pointer">DMCA & Copyright</button>
+               <a href="/terms" onClick={(e) => { e.preventDefault(); onViewTerms(); }} className="text-xs text-clay-muted hover:text-clay-ink transition-colors cursor-pointer">Terms & Conditions</a>
+               <a href="/privacy" onClick={(e) => { e.preventDefault(); onViewPrivacy(); }} className="text-xs text-clay-muted hover:text-clay-ink transition-colors cursor-pointer">Privacy Policy</a>
+               <a href="/disclaimer" onClick={(e) => { e.preventDefault(); onViewDisclaimer(); }} className="text-xs text-clay-muted hover:text-clay-ink transition-colors cursor-pointer">Legal Disclaimer</a>
+               <a href="/dmca" onClick={(e) => { e.preventDefault(); onViewDMCA(); }} className="text-xs text-clay-muted hover:text-clay-ink transition-colors cursor-pointer">DMCA & Copyright</a>
              </div>
           </div>
 

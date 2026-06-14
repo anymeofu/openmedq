@@ -1,0 +1,67 @@
+# OpenMedQ
+
+> A 100% free, open-source medical exam preparation platform for NEET PG, FMGE, and INI-CET.
+
+## About
+
+OpenMedQ is a student-built, fully unlocked, offline-first practice suite designed to help medical students defeat the forgetting curve without commercial paywalls. Built by a 3rd year MBBS student as a solo project.
+
+- **190,000+ peer-reviewed MCQs** across all 19 MBBS subjects
+- **FSRS v6 spaced repetition** engine for scientifically optimized review scheduling
+- **Offline-first** architecture using IndexedDB — works in hospital wards and basements
+- **Zero cost** — no subscriptions, no paywalls, no ads
+- **Open source** under MIT license
+
+## Core Pages
+
+- Homepage: https://openmedq.com/
+- Blog: https://openmedq.com/blog
+- Download Android App: https://openmedq.com/download
+- Contribute: https://openmedq.com/contribute
+- Development Roadmap: https://openmedq.com/roadmap
+
+## Blog Posts
+
+- [NEET PG 2026 Preparation Strategy: An Evidence-Based Study Plan](https://openmedq.com/blog/neet-pg-2026-preparation-strategy)
+- [The Science of Spaced Repetition: Why It Works for Medical Students](https://openmedq.com/blog/spaced-repetition-science-for-medical-students)
+- [Why OpenMedQ Is 100% Free (And Always Will Be)](https://openmedq.com/blog/why-openmedq-is-free)
+
+## Medical Subjects Covered
+
+Anatomy, Physiology, Biochemistry, Pathology, Pharmacology, Microbiology, Forensic Medicine, Social & Preventive Medicine, Ophthalmology, Otorhinolaryngology, General Medicine, General Surgery, Obstetrics & Gynecology, Pediatrics, Orthopedics, Dermatology, Psychiatry, Radiology, Anesthesiology.
+
+## Key Features
+
+- **Active Recall Practice**: Clinical case-based MCQs with instant feedback and high-yield explanations
+- **FSRS v6 Algorithm**: State-of-the-art spaced repetition scheduling (Stability, Difficulty, Retrievability)
+- **Custom Modules**: Create focused practice sets by subject, topic, and question status
+- **Weak Spot Targeting**: Automatically isolates concepts with 3+ memory slips for focused review
+- **Progress Sync**: Cloud sync via Clerk authentication across devices
+- **Gamification**: Streaks, XP, levels, and monthly leaderboards
+- **PWA + Android APK**: Installable app with offline support
+
+## Technology
+
+- Frontend: React 19 + Vite + Tailwind CSS v4
+- Backend: Hono on Cloudflare Workers
+- Database: Cloudflare D1 (SQLite at the edge)
+- Storage: Cloudflare R2 for static question packs
+- Auth: Clerk
+- Algorithm: ts-fsrs (FSRS v6)
+
+## Legal
+
+- Privacy Policy: https://openmedq.com/privacy
+- Terms & Conditions: https://openmedq.com/terms
+- Disclaimer: https://openmedq.com/disclaimer
+- DMCA Policy: https://openmedq.com/dmca
+
+## Source Code
+
+- GitHub: https://github.com/Riso19/openmedq
+- License: MIT (code), CC-BY-SA 4.0 (content)
+
+## Contact
+
+- Telegram: https://t.me/openmedq
+- GitHub Issues: https://github.com/Riso19/openmedq/issues

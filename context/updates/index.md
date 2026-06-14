@@ -70,3 +70,13 @@ This directory logs updates, deprecated patterns, and common mistakes encountere
 * [dynamic_seo_meta_tags_standards.md](file:///Users/sain/development/openmedq/context/updates/dynamic_seo_meta_tags_standards.md):
   * **Category**: Common mistakes to avoid / Architecture standards.
   * **Description**: Standards for dynamic document title, description, and social meta tag updates in client-side SPA routers.
+* [blog_seo_architecture_standards.md](file:///Users/sain/development/openmedq/context/updates/blog_seo_architecture_standards.md):
+  * **Category**: New info learned via web research / Architecture standards.
+  * **Description**: Standards for zero-cost SEO blog: build-time SSG with static HTML prerendering (avoids cloaking risk of dynamic rendering), JSON-LD schema stack (BlogPosting, BreadcrumbList, FAQPage, Organization), pillar-cluster content strategy for topical authority, dynamic sitemap via Pages Functions, robots.txt, AI Overview optimization, and Clay Design System integration.
+* [seo-audit-fixes.md](file:///Users/sain/development/openmedq/context/updates/seo-audit-fixes.md):
+  * **Category**: Common mistakes to avoid / Architecture standards.
+  * **Description**: SEO audit implementation: crawlable `<a href>` links replacing `<button onClick>` navigation, canonical URL cleanup (strip hashes/params), SoftwareApplication + FAQPage + SearchAction JSON-LD schemas, 1200x630 OG preview image, Twitter meta `name` attribute fix, Google Fonts preconnect, expanded robots.txt disallows, `llms.txt` for AI crawlers, `<main>` landmark.
+* [blog_publishing_and_deployment.md](file:///Users/sain/development/openmedq/context/updates/blog_publishing_and_deployment.md):
+  * **Category**: Content creation / Deployment standards.
+  * **Description**: SOP and step-by-step checklist for publishing new blog posts on OpenMedQ and deploying to Cloudflare Pages.
+

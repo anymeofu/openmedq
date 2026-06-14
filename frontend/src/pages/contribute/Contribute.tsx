@@ -164,10 +164,17 @@ Here are the questions to convert:
       }
       
       const errors: SchemaError[] = [];
+      const seenIds = new Set<number>();
       data.forEach((item: any, index: number) => {
         // Validate ID
         if (typeof item.id !== 'number') {
           errors.push({ index, field: 'id', message: "Must be a unique number." });
+        } else {
+          if (seenIds.has(item.id)) {
+            errors.push({ index, field: 'id', message: "Must be a unique number." });
+          } else {
+            seenIds.add(item.id);
+          }
         }
         
         // Validate questionText
