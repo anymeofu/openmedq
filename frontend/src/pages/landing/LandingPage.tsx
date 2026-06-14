@@ -977,7 +977,7 @@ export function LandingPage({
             
             <div className="space-y-4 text-clay-body text-xs sm:text-sm md:text-base leading-relaxed">
               <p>
-                I am a 3rd year medical student. I do not have a venture capital fund, a sales team, or commercial interests. I built OpenMedQ because I was tired of medical school being treated as a market to exploit.
+                I am <a href="https://www.linkedin.com/in/sainsiddiquee/" target="_blank" rel="noopener noreferrer" className="underline hover:text-clay-pink transition-colors font-medium">Sain Siddiquee</a>, a 3rd year medical student. I do not have a venture capital fund, a sales team, or commercial interests. I built OpenMedQ because I was tired of medical school being treated as a market to exploit.
               </p>
               <p>
                 I designed the architecture to run completely client-side in your browser, utilizing local storage. This keeps my hosting cost at ₹0. Because there are no expensive servers, there is no need for paywalls, subscription bills, or advertising.
@@ -995,6 +995,17 @@ export function LandingPage({
                 className="bg-clay-ink hover:bg-neutral-800 text-white font-bold px-6 py-3 rounded-clay-md text-xs transition-all duration-200 cursor-pointer text-center"
               >
                 Join the Codebase on GitHub
+              </a>
+              <a
+                href="https://www.linkedin.com/in/sainsiddiquee/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="bg-clay-canvas border border-clay-hairline hover:bg-clay-surface-soft text-clay-ink font-semibold px-6 py-3 rounded-clay-md text-xs transition-all duration-200 cursor-pointer text-center inline-flex items-center justify-center gap-2"
+              >
+                <svg className="w-3.5 h-3.5 fill-current shrink-0" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.779-1.75-1.75s.784-1.75 1.75-1.75 1.75.779 1.75 1.75-.784 1.75-1.75 1.75zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z"/>
+                </svg>
+                Connect on LinkedIn
               </a>
               <button
                 onClick={onStartPractice}
@@ -1439,7 +1450,7 @@ export function LandingPage({
               <span className="font-bold text-lg text-clay-ink">OpenMedQ</span>
             </div>
             <p className="text-xs text-clay-muted leading-relaxed">
-              A 100% free, open-source medical education portal built solo by a 3rd year medical student for NEET PG, FMGE, and INI-CET preparation.
+              A 100% free, open-source medical education portal built solo by <a href="https://www.linkedin.com/in/sainsiddiquee/" target="_blank" rel="noopener noreferrer" className="underline hover:text-clay-pink transition-colors">Sain Siddiquee</a>, a 3rd year medical student, for NEET PG, FMGE, and INI-CET preparation.
             </p>
           </div>
 
@@ -1486,6 +1497,8 @@ export function LandingPage({
 
           <div className="flex gap-4">
             <a href="https://github.com/Riso19/openmedq" target="_blank" rel="noopener noreferrer" className="hover:text-clay-pink transition-colors">GitHub</a>
+            <span>•</span>
+            <a href="https://www.linkedin.com/in/sainsiddiquee/" target="_blank" rel="noopener noreferrer" className="hover:text-clay-pink transition-colors">LinkedIn</a>
             <span>•</span>
             <a href="#" className="hover:text-clay-pink transition-colors">Status</a>
           </div>
